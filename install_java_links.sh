@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Make sure the script is run with root privileges
+if [ "$(id -u)" -ne 0 ]; then
+  echo "[ERROR] This script must be run as root or with sudo."
+  exit 1
+fi
+
 # The installation directory for the symlinks, should be in PATH
 user_install_dir="/usr/local/bin"
 
