@@ -1,0 +1,4 @@
+alias='<server_alias>'
+
+cd "<server_directory>"
+screen -S "minecraft-server-$alias" -dm java<java_version> -Xmx<gigabytes>G -Xms<gigabytes>G -jar "<server_directory>/server.jar" nogui

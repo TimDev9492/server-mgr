@@ -1,0 +1,5 @@
+players: 128
+animals: 128
+monsters: 64
+misc: 32
+other: 64
