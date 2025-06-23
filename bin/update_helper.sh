@@ -21,6 +21,7 @@ select_project() {
     exit 1
   fi
   gum filter --limit 1 \
+    --placeholder "Type project name..." \
     --header "Select a project:" \
     --select-if-one \
     $projects
@@ -43,6 +44,7 @@ select_version() {
 
   local versions=$(fetch_api "${PAPER_API_ENDPOINT}/projects/${project}" | jq -rc ".versions[]")
   local version=$(gum filter --limit 1 \
+    --placeholder "Type version number..." \
     --header "Select version to update:" \
     --select-if-one \
     $versions)
@@ -71,6 +73,7 @@ select_build() {
 
   local channels=$(echo "$builds_by_channel" | jq -r 'keys[]' | sort -du)
   local channel=$(gum filter --limit 1 \
+    --placeholder "Type channel name..." \
     --header "Select channel (version $version):" \
     --select-if-one \
     $channels)
@@ -94,6 +97,7 @@ select_build() {
     local build=$(echo "$builds" | head -n1)
   elif [ "$confirmation_result" -eq 1 ]; then
     local build=$(gum filter --limit 1 \
+      --placeholder "Type build number..." \
       --header "Select build for channel '$channel' (version $version):" \
       --select-if-one \
       $builds)
