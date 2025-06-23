@@ -6,7 +6,7 @@ source ./common/utils.sh
 
 # Load variables
 if [ ! -f "./variables.sh" ]; then
-  echo "[ERROR] variables.sh not found in the script directory."
+  echo "[ERROR] variables.sh not found in the script directory." >&2
   exit 1
 fi
 source ./variables.sh
@@ -108,6 +108,11 @@ select_build() {
 project=$(select_project)
 operation=$(select_operation)
 
+if [ -z "$project" ]; then
+  echo "[ERROR] No project selected, exiting..." >&2
+  exit 1
+fi
+
 case "$operation" in
 install)
   version=$(select_version "$project")
@@ -133,14 +138,14 @@ update)
     build=$(select_build "$project" "$version" "true")
 
     if [ -z "$build" ]; then
-      echo "[ERROR] No build selected, exiting..."
+      echo "[ERROR] No build selected, exiting..." >&2
       exit 1
     fi
 
     installed_builds=$(bash -c "source ./papman.sh" _ "list-builds" "$project" "$version")
     latest_installed_build=$(echo "$installed_builds" | sort -nr | head -n1)
     if [ -n "$latest_installed_build" ] && [ "$build" -le "$latest_installed_build" ]; then
-      echo "[INFO] Newest build is already installed for version $version, skipping update."
+      echo "[INFO] Newest build is already installed for version $version, skipping update." >&2
       continue
     fi
 
@@ -148,7 +153,7 @@ update)
   done
 
   if [ ${#updates[@]} -eq 0 ]; then
-    echo "[INFO] Nothing to update."
+    echo "[INFO] Nothing to update." >&2
     exit 0
   fi
 
@@ -160,7 +165,7 @@ update)
 
   gum confirm "$(echo -e "Update the following versions?\n$update_format_string")" \
     --affirmative="Apply" --negative="Cancel" || {
-    echo "[INFO] Operation cancelled."
+    echo "[INFO] Operation cancelled." >&2
     exit 0
   }
 
@@ -172,11 +177,11 @@ update)
     ' _ "install" "$project" "$version" "$build"
   done
 
-  echo "[INFO] Update completed successfully."
+  echo "[INFO] Update completed successfully." >&2
   exit 0
   ;;
 *)
-  echo "[ERROR] Unknown operation: $operation"
+  echo "[ERROR] Unknown operation: $operation" >&2
   exit 1
   ;;
 esac

@@ -10,7 +10,7 @@ source ./common/utils.sh
 
 # Load variables
 if [ ! -f "./variables.sh" ]; then
-  echo "[ERROR] variables.sh not found in the script directory."
+  echo "[ERROR] variables.sh not found in the script directory." >&2
   exit 1
 fi
 source ./variables.sh
@@ -25,20 +25,20 @@ print_usage() {
   if [ -z "$1" ]; then
     local IFS='|'
     local ops="${operations[*]}"
-    echo "Usage: papman.sh <$ops>"
+    echo "Usage: papman.sh <$ops>" >&2
   else
     case "$1" in
     install)
-      echo "Usage: papman.sh install <project> <version> <build>"
+      echo "Usage: papman.sh install <project> <version> <build>" >&2
       ;;
     list-versions)
-      echo "Usage: papman.sh list-versions <project>"
+      echo "Usage: papman.sh list-versions <project>" >&2
       ;;
     list-builds)
-      echo "Usage: papman.sh list-builds <project> <version> [-c: with channels]"
+      echo "Usage: papman.sh list-builds <project> <version> [-c: with channels]" >&2
       ;;
     *)
-      echo "[ERROR] Unknown operation: $1"
+      echo "[ERROR] Unknown operation: $1" >&2
       ;;
     esac
   fi
@@ -104,13 +104,13 @@ install)
     # TODO: Link to the actual lastest build jar file
     latest_jar_filename=$(get_latest_build_file "$project" "$version")
     if [ "$latest_jar_filename" == "null" ]; then
-      echo "[ERROR] Unexpected failuer: No latest jar file found for project '$project' and version '$version'."
+      echo "[ERROR] Unexpected failuer: No latest jar file found for project '$project' and version '$version'." >&2
       exit 1
     fi
     ln -sf "${jar_output_directory}/${latest_jar_filename}" "${jar_output_directory}/${project}-latest.jar"
-    echo "[INFO] Successfully installed $project version $version (build: $build) (channel: $channel)"
+    echo "[INFO] Successfully installed $project version $version (build: $build) (channel: $channel)" >&2
   else
-    echo "[ERROR] The file does not exist at the specified URL: ${download_url}"
+    echo "[ERROR] The file does not exist at the specified URL: ${download_url}" >&2
     exit 1
   fi
   ;;
@@ -161,7 +161,7 @@ list-builds)
   done
   ;;
 *)
-  echo "[ERROR] Unknown operation: $operation"
+  echo "[ERROR] Unknown operation: $operation" >&2
   print_usage
   exit 1
   ;;
