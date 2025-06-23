@@ -9,17 +9,13 @@ source ./common/utils.sh
 
 # Load variables
 if [ ! -f "./variables.sh" ]; then
-  echo "[Error] variables.sh not found in the script directory."
+  echo "[ERROR] variables.sh not found in the script directory."
   exit 1
 fi
 source ./variables.sh
 
 # Check for required commands
-source ./check_prerequisites.sh
-if [ $? -ne 0 ]; then
-  echo "[Error] Prerequisites check failed."
-  exit 1
-fi
+check_prerequisites
 
 print_usage() {
   echo "Usage: update_paper.sh <version|'latest'|'installed'> <channels: comma-separated, default: 'default'> <project: optional, default: 'paper'>"
@@ -82,26 +78,10 @@ download_latest_build() {
 
   # echo "[INFO] Downloading latest $selected_channel build for $project version $target_version build $latest_build..."
 
-  api_jar_name="${project}-${target_version}-${latest_build}.jar"
-  jar_output_filename=$(to_filename "$project" "$target_version" "$latest_build" "$selected_channel")
-  jar_output_directory="${PAPER_DOWNLOAD_DIR}/${project}/${target_version}"
-  mkdir -p "${jar_output_directory}"
-
-  output_path="${jar_output_directory}/${jar_output_filename}"
-
-  download_url="${PAPER_API_ENDPOINT}/projects/${project}/versions/${target_version}/builds/${latest_build}/downloads/${api_jar_name}"
-  # Check if file exists before downloading
-  if curl --head -s --fail "${download_url}" >/dev/null; then
-    # download the file
-    curl -s "${download_url}" -o "${output_path}"
-
-    chmod +x "${output_path}"
-    ln -sf "${output_path}" "${jar_output_directory}/${project}-latest.jar"
-    echo "[INFO] Successfully installed $project version $target_version (build: $latest_build) (channel: $selected_channel)"
-  else
-    echo "[ERROR] The file does not exist at the specified URL: ${download_url}"
-    exit 1
-  fi
+  args=("$@")
+  set -- "install" "$project" "$target_version" "$latest_build"
+  source ./papman.sh
+  set -- "${args[@]}" # Restore original arguments
 }
 
 if [ "$version" == "latest" ]; then

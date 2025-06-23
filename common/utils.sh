@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# check if required programs are installed
+check_prerequisites() {
+  local required_commands=("curl" "jq" "which" "awk" "grep" "sed")
+
+  # Accept more requirements passed as arguments
+  if [ $# -gt 0 ]; then
+    required_commands+=("$@")
+  fi
+
+  # Check if required commands are installed
+  for cmd in "${required_commands[@]}"; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      echo "[ERROR] $cmd is not installed." >&2
+      exit 1
+    fi
+  done
+}
+
 # fetch data from an API endpoint and exit on error,
 # otherwise, return the response as a string.
 fetch_api() {

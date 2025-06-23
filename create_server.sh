@@ -13,11 +13,7 @@ fi
 source ./variables.sh
 
 # Check for required commands
-source ./check_prerequisites.sh
-if [ $? -ne 0 ]; then
-  echo "[Error] Prerequisites check failed."
-  exit 1
-fi
+check_prerequisites
 
 print_usage() {
   echo "Usage: create_server.sh <server_alias> <project_version> <java_version> <project: optional, default: paper>"
