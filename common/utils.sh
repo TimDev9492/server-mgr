@@ -2,7 +2,7 @@
 
 # check if required programs are installed
 check_prerequisites() {
-  local required_commands=("curl" "jq" "which" "awk" "grep" "sed")
+  local required_commands=("curl" "jq" "which" "awk" "grep" "sed" "screen")
 
   # Accept more requirements passed as arguments
   if [ $# -gt 0 ]; then
@@ -55,4 +55,25 @@ get_info_from_filename() {
     echo "[ERROR] Invalid filename format: $filename" >&2
     exit 1
   fi
+}
+
+# Parse command line arguments into flags and positional arguments
+# Usage: parse_args flags args "$@"
+# - flags: an array to hold flags (e.g., -v, --verbose)
+# - args: an array to hold positional arguments (e.g., server alias)
+parse_args() {
+  local -n _flags="$1"
+  local -n _args="$2"
+  shift 2
+
+  _flags=()
+  _args=()
+
+  for arg in "$@"; do
+    if [[ "$arg" == -* ]]; then
+      _flags+=("$arg")
+    else
+      _args+=("$arg")
+    fi
+  done
 }
