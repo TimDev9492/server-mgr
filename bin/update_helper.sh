@@ -110,12 +110,13 @@ select_build() {
 }
 
 project=$(select_project)
-operation=$(select_operation)
 
 if [ -z "$project" ]; then
   echo "[ERROR] No project selected, exiting..." >&2
   exit 1
 fi
+
+operation=$(select_operation)
 
 case "$operation" in
 install)
