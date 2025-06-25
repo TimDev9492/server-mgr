@@ -4,6 +4,8 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd ${SCRIPT_DIR}
 source ../common/utils.sh
 
+echo "[DEBUG] Script directory: $SCRIPT_DIR"
+
 # Load variables
 if [ ! -f "../variables.sh" ]; then
   echo "[ERROR] variables.sh not found in the script directory."
@@ -47,7 +49,7 @@ backup_server() {
   local latest_backup_dir="${server_backup_dir}/latest"
   local backup_dir="${server_backup_dir}/${timestamp}"
 
-  local rsync_opts=("-a" "--delete" "--include-from=${SCRIPT_DIR}/assets/default-include.txt")
+  local rsync_opts=("-a" "--delete" "--include-from=${SCRIPT_DIR}/../assets/default-include.txt")
   if [ -d "$latest_backup_dir" ]; then
     rsync_opts+=("--link-dest=$latest_backup_dir")
   fi
@@ -97,7 +99,7 @@ mkdir -p "$MINECRAFT_SERVER_BACKUP_DIR"
 
 backup_server "$server_alias"
 if [ $? -eq 0 ]; then
-  echo "[INFO] Backup completed successfully."
+  exit 0
 else
   echo "[ERROR] Backup failed."
   exit 1

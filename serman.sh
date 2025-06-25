@@ -97,8 +97,21 @@ list)
   done
   ;;
 backup)
-  # backup the server
-  echo "[INFO] Not implemented yet." >&2
+  server_alias="${args[1]}"
+  if [ -z "$server_alias" ]; then
+    print_usage "${args[0]}"
+    exit 1
+  fi
+  # check if server installation is corret
+  server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
+  check_server_installation "$server_directory" || {
+    echo "[ERROR] Server '$server_alias' is corrupted." >&2
+    $VERBOSE || echo "[INFO] Run again with -v for verbose logging." >&2
+    exit 1
+  }
+  bash -c '
+    source ./helpers/backup_server.sh
+  ' _ "$server_alias"
   ;;
 *)
   echo "[ERROR] Unknown operation: $operation" >&2
