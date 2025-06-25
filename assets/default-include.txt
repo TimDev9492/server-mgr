@@ -1,0 +1,30 @@
+# world files
++ world/
++ world_nether/
++ world_the_end/
+
+# plugins and plugin configs
++ plugins/
+
+# user scripts
++ bin/
+
+# logs
++ logs/
+
+# config files
++ config/
++ banned-ips.json
++ banned-players.json
++ bukkit.yml
++ commands.yml
++ ops.josn
++ permissions.yml
++ server.properties
++ spigot.yml
++ version_history.json
++ whitelist.json
+
+# exclude everything else
+- *
+

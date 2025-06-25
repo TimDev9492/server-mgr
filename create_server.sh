@@ -71,9 +71,9 @@ echo "[INFO] Installing $project $project_version server '$server_alias' with ja
 mkdir -p "${server_installation_dir}/bin"
 cd "$server_installation_dir"
 ln -s "$project_latest_jar_path" server.jar
-cp "${SCRIPT_DIR}/templates/eula.txt" .
-cp "${SCRIPT_DIR}/templates/spigot.yml" .
-cp "${SCRIPT_DIR}/templates/startServer.sh.tmpl" bin/startServer.sh
+cp "${SCRIPT_DIR}/assets/templates/eula.txt" .
+cp "${SCRIPT_DIR}/assets/templates/spigot.yml" .
+cp "${SCRIPT_DIR}/assets/templates/startServer.sh.tmpl" bin/startServer.sh
 
 # edit startServer.sh script
 echo "Enter maximum RAM usage (Gigabytes):"
@@ -95,7 +95,7 @@ while IFS="" read -r property; do
   read -u 3 -p "Enter value for '$key' [$value]: " new_val
   new_val=${new_val:-$value}
   echo "$key=$new_val" >>server.properties
-done 3<&0 <"${SCRIPT_DIR}/templates/server.properties.tmpl"
+done 3<&0 <"${SCRIPT_DIR}/assets/templates/server.properties.tmpl"
 
 # edit spigot.yml
 while IFS="" read -r property; do
@@ -104,6 +104,6 @@ while IFS="" read -r property; do
   read -u 3 -p "Enter value for 'entity-tracking-range' ($key) [$value]: " new_val
   new_val=${new_val:-$value}
   echo "      $key: $new_val" >>spigot.yml
-done 3<&0 <"${SCRIPT_DIR}/templates/spigot.yml.tracking"
+done 3<&0 <"${SCRIPT_DIR}/assets/templates/spigot.yml.tracking"
 
 echo "[INFO] Server '$server_alias' created successfully at $server_installation_dir"
