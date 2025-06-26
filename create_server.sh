@@ -88,12 +88,13 @@ if [ -z "$public_ip" ]; then
   public_ip="127.0.0.1"
 fi
 read -p "Enter value for 'server-ip' [$public_ip]: " server_ip
-echo "server-ip=$server_ip" >>server.properties
+echo "server-ip=${server_ip:-$public_ip}" >>server.properties
 while IFS="" read -r property; do
   key=$(awk -F= '{ print $1 }' <<<$property)
   value=$(awk -F= '{ print $2 }' <<<$property)
   read -u 3 -p "Enter value for '$key' [$value]: " new_val
   new_val=${new_val:-$value}
+  echo "[DEBUG] Writing property: $key=$new_val"
   echo "$key=$new_val" >>server.properties
 done 3<&0 <"${SCRIPT_DIR}/assets/templates/server.properties.tmpl"
 
