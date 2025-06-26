@@ -94,7 +94,6 @@ while IFS="" read -r property; do
   value=$(awk -F= '{ print $2 }' <<<$property)
   read -u 3 -p "Enter value for '$key' [$value]: " new_val
   new_val=${new_val:-$value}
-  echo "[DEBUG] Writing property: $key=$new_val"
   echo "$key=$new_val" >>server.properties
 done 3<&0 <"${SCRIPT_DIR}/assets/templates/server.properties.tmpl"
 
