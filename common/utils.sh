@@ -77,3 +77,19 @@ parse_args() {
     fi
   done
 }
+
+# Check if a value is in an array
+# Usage: in_array value array
+# - value: the value to check
+# - array: the array to check against (passed as a string)
+in_array() {
+  local value="$1"
+  shift
+  local element
+  for element in "$@"; do
+    if [[ "$element" == "$value" ]]; then
+      return 0 # Value found
+    fi
+  done
+  return 1 # Value not found
+}

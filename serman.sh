@@ -24,20 +24,16 @@ VERBOSE=false
 parse_args flags args "$@"
 
 # parse the flags
-for flag in "${flags[*]}"; do
+for flag in "${flags[@]}"; do
   case "$flag" in
   -v)
     VERBOSE=true
-    ;;
-  -*)
-    echo "[ERROR] Unknown option: $flag" >&2
-    exit 1
     ;;
   esac
 done
 
 # parse arguments
-operations=("list" "backup")
+operations=("list" "backup" "uninstall")
 
 print_usage() {
   if [ -z "${args[0]}" ]; then
@@ -49,6 +45,9 @@ print_usage() {
     list) ;;
     backup)
       echo "Usage: papman.sh backup <server_alias>" >&2
+      ;;
+    uninstall)
+      echo "Usage: papman.sh uninstall <server_alias> [--delete-backups]" >&2
       ;;
     *)
       echo "[ERROR] Unknown operation: ${args[0]}" >&2
@@ -112,6 +111,35 @@ backup)
   bash -c '
     source ./helpers/backup_server.sh
   ' _ "$server_alias"
+  ;;
+uninstall)
+  server_alias="${args[1]}"
+  if [ -z "$server_alias" ]; then
+    print_usage "${args[0]}"
+    exit 1
+  fi
+  if in_array "--delete-backups" "${flags[@]}"; then
+    delete_backups=true
+  else
+    delete_backups=false
+  fi
+  # check if server installation is correct
+  server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
+  if [ ! -d "$server_directory" ]; then
+    log "[ERROR] Server '$server_alias' does not exist."
+    exit 1
+  fi
+  rm -rf "$server_directory"
+  log "[INFO] Uninstalled server '$server_alias'."
+  if $delete_backups; then
+    backup_dir="${MINECRAFT_SERVER_BACKUP_DIR}/${server_alias}"
+    if [ -d "$backup_dir" ]; then
+      rm -rf "$backup_dir"
+      log "[INFO] Deleted backups for server '$server_alias'."
+    else
+      log "[INFO] No backups found for server '$server_alias'."
+    fi
+  fi
   ;;
 *)
   echo "[ERROR] Unknown operation: $operation" >&2
