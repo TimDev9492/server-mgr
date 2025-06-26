@@ -1,0 +1,21 @@
+# .github/workflows/run-tests.yml
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - '**'  # run on any branch push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set execute permission for test script
+      run: chmod +x tests/run_all_tests.sh
+
+    - name: Run all tests
+      run: ./tests/run_all_tests.sh
