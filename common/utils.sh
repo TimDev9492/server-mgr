@@ -124,3 +124,30 @@ get_server_status() {
     echo "Idle"
   fi
 }
+
+send_server_command() {
+  local server_alias="$1"
+  shift
+  local command="$*"
+  local screen_session_name=$(to_screen_session_name "$server_alias")
+
+  if in_array "$screen_session_name" $(print_screen_session_names); then
+    screen -S "$screen_session_name" -p 0 -X stuff "$command$(printf \\r)"
+    return 0
+  else
+    echo "[ERROR] Server '$server_alias' is not running." >&2
+    return 1
+  fi
+  return 0
+}
+
+is_number() {
+  case "$1" in
+  '' | *[!0-9]*)
+    return 1
+    ;; # Not a number
+  *)
+    return 0
+    ;; # Is a number
+  esac
+}

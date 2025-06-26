@@ -33,7 +33,7 @@ for flag in "${flags[@]}"; do
 done
 
 # parse arguments
-operations=("list" "backup" "uninstall" "status")
+operations=("list" "backup" "uninstall" "status" "start" "stop")
 
 print_usage() {
   if [ -z "${args[0]}" ]; then
@@ -51,6 +51,12 @@ print_usage() {
       ;;
     status)
       echo "Usage: serman.sh status" >&2
+      ;;
+    start)
+      echo "Usage: serman.sh start <server_alias>" >&2
+      ;;
+    stop)
+      echo "Usage: serman.sh stop <server_alias> [<delay_seconds>] [<note>] [<reason>] [--wait]" >&2
       ;;
     *)
       echo "[ERROR] Unknown operation: ${args[0]}" >&2
@@ -94,23 +100,6 @@ list_installed_servers() {
     # check if the server directory is a valid server installation
     check_server_installation "$server_dir" && echo "$server_alias" || continue
   done
-}
-
-get_player_amount() {
-  local server_alias="$1"
-  local server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
-  if [ ! -d "$server_directory" ]; then
-    echo "[ERROR] Server '$server_alias' does not exist." >&2
-    return 1
-  fi
-  # Check if the server is running
-  if ! screen -list | grep -q "$(to_screen_session_name "$server_alias")"; then
-    echo "[Idle]"
-    return 0
-  fi
-  # Get the player count from the server log or status file
-  local player_count=$(grep -oP 'There are \K\d+' "${server_directory}/logs/latest.log" | tail -n1)
-  echo "$player_count"
 }
 
 operation="${args[0]}"
@@ -179,6 +168,75 @@ status)
     status=$(get_server_status "$installed_server_alias")
     printf "%-${max_width}s : %s\n" "$installed_server_alias" "$status"
   done <<<"$installed_servers"
+  ;;
+start)
+  server_alias="${args[1]}"
+  if [ -z "$server_alias" ]; then
+    print_usage "${args[0]}"
+    exit 1
+  fi
+  # check if server installation is correct
+  server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
+  check_server_installation "$server_directory" || {
+    echo "[ERROR] Server '$server_alias' is corrupted." >&2
+    exit 1
+  }
+  # check if server is already running
+  server_status=$(get_server_status "$server_alias")
+  if [[ "$server_status" == "Running" ]]; then
+    echo "[ERROR] Server '$server_alias' is already running." >&2
+    exit 1
+  fi
+  # Sart the server
+  source "${server_directory}/bin/startServer.sh"
+  echo "[INFO] Starting server '$server_alias'."
+  ;;
+stop)
+  server_alias="${args[1]}"
+  delay_seconds="${args[2]:-0}"
+  if ! is_number "$delay_seconds"; then
+    echo "[ERROR] Delay seconds must be a valid number." >&2
+    print_usage "${args[0]}"
+    exit 1
+  fi
+  stop_note="${args[3]:-null}"
+  kick_reason="${args[4]:-The server was stopped.}"
+  wait_flag=false
+  in_array "--wait" "${flags[@]}" && wait_flag=true
+
+  if [ -z "$server_alias" ] || [ -z "$delay_seconds" ]; then
+    print_usage "${args[0]}"
+    exit 1
+  fi
+
+  # check if server installation is correct
+  server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
+  check_server_installation "$server_directory" || {
+    echo "[ERROR] Server '$server_alias' is corrupted." >&2
+    exit 1
+  }
+  # check if server is running
+  server_status=$(get_server_status "$server_alias")
+  if [[ "$server_status" != "Running" ]]; then
+    echo "[ERROR] Server '$server_alias' is not running." >&2
+    exit 1
+  fi
+
+  if $wait_flag; then
+    (
+      source ./helpers/schedule_server_stop.sh "$server_alias" "$delay_seconds" "$stop_note" "$kick_reason"
+    )
+    if [ $? -ne 0 ]; then
+      echo "[ERROR] Failed to stop server '$server_alias'." >&2
+      exit 1
+    else
+      echo "[INFO] Server '$server_alias' successfully stopped."
+    fi
+  else
+    (
+      source ./helpers/schedule_server_stop.sh "$server_alias" "$delay_seconds" "$stop_note" "$kick_reason"
+    ) >/dev/null 2>&1 &
+  fi
   ;;
 *)
   echo "[ERROR] Unknown operation: $operation" >&2
