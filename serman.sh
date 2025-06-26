@@ -33,7 +33,7 @@ for flag in "${flags[@]}"; do
 done
 
 # parse arguments
-operations=("list" "backup" "uninstall")
+operations=("list" "backup" "uninstall" "status")
 
 print_usage() {
   if [ -z "${args[0]}" ]; then
@@ -44,10 +44,13 @@ print_usage() {
     case "${args[0]}" in
     list) ;;
     backup)
-      echo "Usage: papman.sh backup <server_alias>" >&2
+      echo "Usage: serman.sh backup <server_alias>" >&2
       ;;
     uninstall)
-      echo "Usage: papman.sh uninstall <server_alias> [--delete-backups]" >&2
+      echo "Usage: serman.sh uninstall <server_alias> [--delete-backups]" >&2
+      ;;
+    status)
+      echo "Usage: serman.sh status" >&2
       ;;
     *)
       echo "[ERROR] Unknown operation: ${args[0]}" >&2
@@ -83,10 +86,7 @@ check_server_installation() {
   return 0
 }
 
-operation="${args[0]}"
-
-case "$operation" in
-list)
+list_installed_servers() {
   for server_dir in "${MINECRAFT_SERVER_DIR}"/*; do
     # skip if not a directory
     [ -d "$server_dir" ] || continue
@@ -94,6 +94,30 @@ list)
     # check if the server directory is a valid server installation
     check_server_installation "$server_dir" && echo "$server_alias" || continue
   done
+}
+
+get_player_amount() {
+  local server_alias="$1"
+  local server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
+  if [ ! -d "$server_directory" ]; then
+    echo "[ERROR] Server '$server_alias' does not exist." >&2
+    return 1
+  fi
+  # Check if the server is running
+  if ! screen -list | grep -q "$(to_screen_session_name "$server_alias")"; then
+    echo "[Idle]"
+    return 0
+  fi
+  # Get the player count from the server log or status file
+  local player_count=$(grep -oP 'There are \K\d+' "${server_directory}/logs/latest.log" | tail -n1)
+  echo "$player_count"
+}
+
+operation="${args[0]}"
+
+case "$operation" in
+list)
+  list_installed_servers
   ;;
 backup)
   server_alias="${args[1]}"
@@ -140,6 +164,21 @@ uninstall)
       log "[INFO] No backups found for server '$server_alias'."
     fi
   fi
+  ;;
+status)
+  installed_servers="$(list_installed_servers)"
+
+  # First, find the maximum width of the alias names
+  max_width=0
+  while IFS= read -r alias; do
+    ((${#alias} > max_width)) && max_width=${#alias}
+    aliases+=("$alias")
+  done <<<"$installed_servers"
+
+  while IFS= read -r installed_server_alias; do
+    status=$(get_server_status "$installed_server_alias")
+    printf "%-${max_width}s : %s\n" "$installed_server_alias" "$status"
+  done <<<"$installed_servers"
   ;;
 *)
   echo "[ERROR] Unknown operation: $operation" >&2

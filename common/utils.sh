@@ -85,11 +85,42 @@ parse_args() {
 in_array() {
   local value="$1"
   shift
-  local element
-  for element in "$@"; do
-    if [[ "$element" == "$value" ]]; then
-      return 0 # Value found
-    fi
-  done
-  return 1 # Value not found
+
+  # If one argument left and it contains newlines, treat it as multiline string
+  if [[ $# -eq 1 && "$1" == *$'\n'* ]]; then
+    local line
+    while IFS= read -r line; do
+      if [[ "$line" == "$value" ]]; then
+        return 0
+      fi
+    done <<<"$1"
+  else
+    local element
+    for element in "$@"; do
+      if [[ "$element" == "$value" ]]; then
+        return 0
+      fi
+    done
+  fi
+
+  return 1
+}
+
+print_screen_session_names() {
+  screen -ls | awk '/\t/{print $1}' | cut -d. -f2
+}
+
+to_screen_session_name() {
+  local server_alias="$1"
+  echo "minecraft-server-$server_alias"
+}
+
+get_server_status() {
+  local server_alias="$1"
+  local screen_session_names=$(print_screen_session_names)
+  if in_array "$(to_screen_session_name $server_alias)" $screen_session_names; then
+    echo "Running"
+  else
+    echo "Idle"
+  fi
 }
