@@ -16,5 +16,6 @@ run_test() {
         echo "✅ PASS: $description"
     else
         echo "❌ FAIL: $description (expected $expected, got $actual)"
+        tests_failed=$((tests_failed + 1))
     fi
 }

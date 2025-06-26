@@ -5,6 +5,18 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd ${SCRIPT_DIR}
 source ./setup_testing.sh
 source ../common/utils.sh
+tests_failed=0
+
+# Get the base filename, e.g. "test_function_name.sh"
+filename=$(basename "$0")
+# Remove the "test_" prefix and ".sh" suffix to get the function name
+function_name="${filename#test_}"
+function_name="${function_name%.sh}"
+# check if function exists
+if ! declare -f "$function_name" >/dev/null; then
+    echo "❌ FAIL: Function '$function_name' does not exist."
+    exit 1
+fi
 
 # Test cases
 
@@ -33,3 +45,5 @@ run_test 0 "Value with space in multiline string" in_array "banana split" "$str2
 # Test 7: number array
 arr3=(1 2 3 4 5)
 run_test 0 "Number in number array" in_array 2 "${arr3[@]}"
+
+[ "$tests_failed" -eq 0 ] && exit 0 || exit 1

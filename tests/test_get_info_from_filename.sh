@@ -5,6 +5,19 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd ${SCRIPT_DIR}
 source ./setup_testing.sh
 source ../common/utils.sh
+tests_failed=0
+
+# Get the base filename, e.g. "test_function_name.sh"
+filename=$(basename "$0")
+# Remove the "test_" prefix and ".sh" suffix to get the function name
+function_name="${filename#test_}"
+function_name="${function_name%.sh}"
+# check if function exists
+if ! declare -f "$function_name" >/dev/null; then
+  echo "❌ FAIL: Function '$function_name' does not exist."
+  exit 1
+fi
+export -f "$function_name"
 
 test_valid_filename() {
   local filename="$1"
@@ -26,8 +39,6 @@ test_invalid_filename() {
   "
 }
 
-export -f get_info_from_filename
-
 # Valid filenames
 test_valid_filename "project-1.20-123-release.jar" "project 1.20 123 release" "Valid filename: project-1.20-123-release.jar"
 test_valid_filename "myProj-0.9.1-7-beta.jar" "myProj 0.9.1 7 beta" "Valid filename: myProj-0.9.1-7-beta.jar"
@@ -42,3 +53,5 @@ test_invalid_filename "project-1.20-123.jar" "Missing channel part"
 
 # Edge case: filename with dash in parts (should fail as per current regex)
 test_invalid_filename "my-proj-1.20-123-release.jar" "Dash inside project name (invalid)"
+
+[ "$tests_failed" -eq 0 ] && exit 0 || exit 1

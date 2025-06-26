@@ -16,7 +16,7 @@ for test_script in "$TEST_DIR"/test_*.sh; do
 
     echo
     echo "=== Running $(basename $test_script) ==="
-    bash "$test_script"
+    bash "$test_script" 2>/dev/null
     exit_code=$?
 
     if [ $exit_code -ne 0 ]; then
