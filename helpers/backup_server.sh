@@ -4,8 +4,6 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd ${SCRIPT_DIR}
 source ../common/utils.sh
 
-echo "[DEBUG] Script directory: $SCRIPT_DIR"
-
 # Load variables
 if [ ! -f "../variables.sh" ]; then
   echo "[ERROR] variables.sh not found in the script directory."
