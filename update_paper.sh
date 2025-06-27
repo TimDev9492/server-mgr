@@ -8,11 +8,11 @@ cd ${SCRIPT_DIR}
 source ./common/utils.sh
 
 # Load variables
-if [ ! -f "./variables.sh" ]; then
-  echo "[ERROR] variables.sh not found in the script directory."
+if [ ! -f "./load_config.sh" ]; then
+  echo "[ERROR] load_config.sh not found in the script directory."
   exit 1
 fi
-source ./variables.sh
+source ./load_config.sh
 
 # Check for required commands
 check_prerequisites
