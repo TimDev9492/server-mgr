@@ -239,7 +239,6 @@ stop)
   fi
   ;;
 *)
-  echo "[ERROR] Unknown operation: $operation" >&2
   print_usage
   exit 1
   ;;
