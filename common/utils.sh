@@ -151,3 +151,18 @@ is_number() {
     ;; # Is a number
   esac
 }
+
+trim() {
+  echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
+print_time() {
+  local secs="$1"
+  if ((secs >= 60)); then
+    local mins=$((secs / 60))
+    local rem=$((secs % 60))
+    echo "${mins}min ${rem}s"
+  else
+    echo "${secs}s"
+  fi
+}

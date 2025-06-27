@@ -18,17 +18,6 @@ message="$*"
 
 print_timestamps=(300 180 120 60 30 10 5 4 3 2 1)
 
-print_time() {
-    local secs="$1"
-    if ((secs >= 60)); then
-        local mins=$((secs / 60))
-        local rem=$((secs % 60))
-        echo "${mins}min ${rem}s"
-    else
-        echo "${secs}s"
-    fi
-}
-
 while ((total_seconds > 0)); do
     if in_array "$total_seconds" "${print_timestamps[@]}"; then
         echo "[INFO] Stopping server $server_alias in $(print_time $total_seconds)"
