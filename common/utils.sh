@@ -1,5 +1,19 @@
 #!/bin/bash
 
+load_project_info() {
+  # load environment
+  local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  cd "${script_dir}/.."
+  HOMEPAGE=$(cat project_info.json | jq -r '.homepage')
+  VERSION=$(cat project_info.json | jq -r '.version')
+}
+
+load_project_info
+
+get_project_user_agent() {
+  echo "server-mgr/$VERSION ($HOMEPAGE)"
+}
+
 # check if required programs are installed
 check_prerequisites() {
   local required_commands=("curl" "jq" "which" "awk" "grep" "sed" "screen")
@@ -22,9 +36,9 @@ check_prerequisites() {
 # otherwise, return the response as a string.
 fetch_api() {
   local url="$1"
-  local response=$(curl -s "$url")
+  local response=$(curl -s -H "$(get_project_user_agent)" "$url")
 
-  is_error_response=$(echo "$response" | jq 'has("error")')
+  is_error_response=$(echo "$response" | jq 'type != "array" and has("error")')
   if [ "$is_error_response" == "true" ]; then
     echo "[ERROR] API request failed: $response" >&2
     exit 1
@@ -165,4 +179,17 @@ print_time() {
   else
     echo "${secs}s"
   fi
+}
+is_sha256_checksum() {
+  local input="$1"
+
+  # A SHA-256 checksum is exactly 64 hexadecimal characters
+  [[ "$input" =~ ^[a-fA-F0-9]{64}$ ]]
+}
+
+is_sha256_checksum() {
+  local input="$1"
+
+  # A SHA-256 checksum is exactly 64 hexadecimal characters
+  [[ "$input" =~ ^[a-fA-F0-9]{64}$ ]]
 }

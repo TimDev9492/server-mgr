@@ -86,7 +86,7 @@ install)
 
   build_info=$(fetch_api "${PAPER_API_ENDPOINT}/projects/${project}/versions/${version}/builds/${build}")
   api_jar_name=$(echo "$build_info" |
-    jq -r '.downloads.application.name')
+    jq -r '.downloads.["server:default"].name')
   channel=$(echo "$build_info" | jq -r '.channel')
   jar_output_filename=$(to_filename "$project" "$version" "$build" "$channel")
   jar_output_directory="${PAPER_DOWNLOAD_DIR}/${project}/${version}"
@@ -94,11 +94,19 @@ install)
 
   output_path="${jar_output_directory}/${jar_output_filename}"
 
-  download_url="${PAPER_API_ENDPOINT}/projects/${project}/versions/${version}/builds/${build}/downloads/${api_jar_name}"
+  download_url="$(echo "$build_info" | jq -r '.downloads.["server:default"].url')"
+  expected_sha256_checksum="$(echo "$build_info" | jq -r '.downloads.["server:default"].checksums.sha256')"
   # Check if file exists before downloading
-  if curl --head -s --fail "${download_url}" >/dev/null; then
+  if curl --head -s --fail -H "User-Agent: $(get_project_user_agent)" "${download_url}" >/dev/null; then
     # download the file
-    curl -s "${download_url}" -o "${output_path}"
+    curl -s -H "User-Agent: $(get_project_user_agent)" "${download_url}" -o "${output_path}"
+    # verify the checksum
+    actual_sha256_checksum="$(sha256sum "${output_path}" | awk '{print $1}')"
+    if is_sha256_checksum "$expected_sha256_checksum" && [ "$actual_sha256_checksum" != "$expected_sha256_checksum" ]; then
+      echo "[ERROR] Checksum verification failed for ${output_path}, deleting..." >&2
+      rm -f "${output_path}"
+      exit 1
+    fi
 
     chmod +x "${output_path}"
     # TODO: Link to the actual lastest build jar file
@@ -129,7 +137,7 @@ list-versions)
     # check if dir_version matches the version regex
     echo "$dir_version" | grep -Eq '^[0-9]+(\.[0-9]+){1,2}$' || continue
     # check if the directory exists in the API
-    # curl -sf -o /dev/null "${PAPER_API_ENDPOINT}/projects/paper/versions/${dir_version}" || continue
+    # curl -sf -o /dev/null -H "User-Agent: $(get_project_user_agent)" "${PAPER_API_ENDPOINT}/projects/paper/versions/${dir_version}" || continue
     echo "$dir_version"
   done
   ;;

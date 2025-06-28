@@ -15,16 +15,25 @@ source ./load_config.sh
 check_prerequisites gum
 
 select_project() {
-  local projects=$(fetch_api "${PAPER_API_ENDPOINT}/projects" | jq -rc '.projects[]')
+  local projects=$(fetch_api "${PAPER_API_ENDPOINT}/projects" | jq -rc '.projects')
   if [ -z "$projects" ]; then
     echo "[ERROR] No projects found in the API response." >&2
     exit 1
   fi
-  gum filter --limit 1 \
+  local project_names=$(echo "$projects" | jq -r '.[].project.name')
+  local selected_project_name=$(gum filter --limit 1 \
     --placeholder "Type project name..." \
     --header "Select a project:" \
     --select-if-one \
-    $projects
+    $project_names)
+
+  local project_id="$(echo "$projects" | jq -rc ".[].project | select(.name == \"$selected_project_name\") | .id")"
+  local count="$(wc -l <<<"$project_id")"
+  if [ "$count" -ne 1 ]; then
+    echo "[ERROR] Found $count projects with name '$selected_project_name'. Please specify a unique project name." >&2
+    exit 1
+  fi
+  echo "$project_id"
 }
 
 select_operation() {
@@ -42,7 +51,7 @@ select_version() {
   local project=$1
   if [ -z "$project" ]; then exit 1; fi
 
-  local versions=$(fetch_api "${PAPER_API_ENDPOINT}/projects/${project}" | jq -rc ".versions[]")
+  local versions=$(fetch_api "${PAPER_API_ENDPOINT}/projects/${project}" | jq -rc ".versions[] | .[]")
   local version=$(gum filter --limit 1 \
     --placeholder "Type version number..." \
     --header "Select version to update:" \
@@ -64,7 +73,7 @@ select_build() {
   if [ -z "$project" ] || [ -z "$version" ]; then exit 1; fi
 
   local builds_by_channel=$(fetch_api "${PAPER_API_ENDPOINT}/projects/${project}/versions/${version}/builds" |
-    jq -r '.builds | sort_by(.channel) | group_by(.channel) | map({ (.[0].channel): map(.build) }) | add')
+    jq -r '. | sort_by(.channel) | group_by(.channel) | map({ (.[0].channel): map(.id) }) | add')
 
   if [ -z "$builds_by_channel" ]; then
     echo "[ERROR] No builds found for project '$project' and version '$version'." >&2
@@ -83,7 +92,7 @@ select_build() {
     exit 1
   fi
 
-  local builds=$(echo "$builds_by_channel" | jq -r ".\"$channel\"[]" | sort -nur)
+  local builds=$(echo "$builds_by_channel" | jq -r ".[\"$channel\"][]" | sort -nur)
 
   if [ "$select_latest" == "true" ]; then
     local build=$(echo "$builds" | head -n1)
