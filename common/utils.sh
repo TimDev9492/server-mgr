@@ -195,3 +195,68 @@ is_sha256_checksum() {
   # A SHA-256 checksum is exactly 64 hexadecimal characters
   [[ "$input" =~ ^[a-fA-F0-9]{64}$ ]]
 }
+
+print_table() {
+  local parsing_delimiter="$1"
+  local column_delimiter="$2"
+  local header="$3"
+  shift 3
+  local -a rows=("$@")
+
+  # Default delimiter to space if empty
+  [[ -z "$parsing_delimiter" ]] && parsing_delimiter=' '
+  [[ -z "$column_delimiter" ]] && column_delimiter=' '
+  IFS="$parsing_delimiter"
+
+  # Split header and rows into arrays of fields
+  local -a headers
+  read -r -a headers <<<"$header"
+  local num_cols="${#headers[@]}"
+
+  # Initialize max width for each column with header lengths
+  local -a col_widths
+  for ((i = 0; i < num_cols; i++)); do
+    col_widths[i]=${#headers[i]}
+  done
+
+  # Process rows to determine max width per column
+  for row in "${rows[@]}"; do
+    local -a fields
+    read -r -a fields <<<"$row"
+    for ((i = 0; i < num_cols; i++)); do
+      [[ -n "${fields[i]}" ]] && ((${#fields[i]} > col_widths[i])) && col_widths[i]=${#fields[i]}
+    done
+  done
+
+  # Print header
+  for ((i = 0; i < num_cols; i++)); do
+    printf "%-*s" "${col_widths[i]}" "${headers[i]}"
+    if ((i < num_cols - 1)); then
+      printf "%s" "${column_delimiter}"
+    fi
+  done
+  echo
+
+  # Print rows
+  for row in "${rows[@]}"; do
+    read -r -a fields <<<"$row"
+    for ((i = 0; i < num_cols; i++)); do
+      printf "%-*s" "${col_widths[i]}" "${fields[i]}"
+      if ((i < num_cols - 1)); then
+        printf "%s" "${column_delimiter}"
+      fi
+    done
+    echo
+  done
+}
+
+get_creation_or_mod_time() {
+  local dir_path="$1"
+  local unix_time="$(stat -c %W "$dir_path")"
+
+  if [ "$unix_time" -eq -1 ]; then
+    unix_time="$(stat -c %Y "$dir_path")"
+  fi
+
+  echo "$unix_time"
+}

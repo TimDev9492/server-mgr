@@ -1,13 +1,17 @@
 # world files
 + world/
++ world/**
 + world_nether/
++ world_nether/**
 + world_the_end/
++ world_the_end/**
 
 # plugins and plugin configs
 + plugins/
 
 # user scripts
 + bin/
++ bin/**
 
 # logs
 + logs/

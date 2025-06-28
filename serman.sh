@@ -34,6 +34,7 @@ done
 
 # parse arguments
 operations=("list" "backup" "uninstall" "status" "start" "stop")
+backup_operations=("create" "delete" "list")
 
 print_usage() {
   if [ -z "${args[0]}" ]; then
@@ -44,7 +45,22 @@ print_usage() {
     case "${args[0]}" in
     list) ;;
     backup)
-      echo "Usage: serman.sh backup <server_alias>" >&2
+      case "${args[1]}" in
+      create)
+        echo "Usage: serman.sh backup create <server_alias>" >&2
+        ;;
+      delete)
+        echo "Usage: serman.sh backup delete <server_alias> <backup_id|'latest'>" >&2
+        ;;
+      list)
+        echo "Usage: serman.sh backup list <server_alias> [--json-format]" >&2
+        ;;
+      *)
+        local IFS='|'
+        local backup_ops="${backup_operations[*]}"
+        echo "Usage: serman.sh backup <${backup_ops[*]}>" >&2
+        ;;
+      esac
       ;;
     uninstall)
       echo "Usage: serman.sh uninstall <server_alias> [--delete-backups]" >&2
@@ -109,21 +125,139 @@ list)
   list_installed_servers
   ;;
 backup)
-  server_alias="${args[1]}"
-  if [ -z "$server_alias" ]; then
+  backup_operation="${args[1]}"
+  if [ -z "$backup_operation" ] || ! in_array "$backup_operation" "${backup_operations[@]}"; then
     print_usage "${args[0]}"
     exit 1
   fi
-  # check if server installation is corret
-  server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
-  check_server_installation "$server_directory" || {
-    echo "[ERROR] Server '$server_alias' is corrupted." >&2
-    $VERBOSE || echo "[INFO] Run again with -v for verbose logging." >&2
+  case "$backup_operation" in
+  create)
+    server_alias="${args[2]}"
+    if [ -z "$server_alias" ]; then
+      print_usage "${args[0]}" "${args[1]}"
+      exit 1
+    fi
+    # check if server installation is corret
+    server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
+    check_server_installation "$server_directory" || {
+      echo "[ERROR] Server '$server_alias' is corrupted." >&2
+      $VERBOSE || echo "[INFO] Run again with -v for verbose logging." >&2
+      exit 1
+    }
+    bash -c '
+      source ./helpers/backup_server.sh
+    ' _ "$server_alias"
+    ;;
+  delete)
+    server_alias="${args[2]}"
+    if [ -z "$server_alias" ]; then
+      print_usage "${args[0]}" "${args[1]}"
+      exit 1
+    fi
+    # check if server installation is corret
+    server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
+    check_server_installation "$server_directory" || {
+      echo "[ERROR] Server '$server_alias' is corrupted." >&2
+      $VERBOSE || echo "[INFO] Run again with -v for verbose logging." >&2
+      exit 1
+    }
+    backup_id="${args[3]}"
+    if [ -z "$backup_id" ]; then
+      print_usage "${args[0]}" "${args[1]}" "${args[2]}"
+      exit 1
+    fi
+
+    backup_infos="$(./serman.sh backup list "$server_alias" --json-format)"
+    if [ "$?" -ne 0 ]; then
+      echo "[ERROR] Failed to list backups for server '$server_alias'." >&2
+      exit 1
+    fi
+
+    if [ "$backup_id" == "latest" ]; then
+      latest_timestamp=$(echo "$backup_infos" | jq -r '.[].unix_time' | sort -n | tail -n1)
+      backup_meta="$(echo "$backup_infos" | jq -rc 'sort_by(.unix_time) | last')"
+    else
+      backup_meta="$(echo "$backup_infos" | jq -rc --arg id "$backup_id" '.[] | select(.id == $id)')"
+    fi
+    matching_count=$(echo "$backup_meta" | jq -s 'length')
+    if [ "$matching_count" -eq 0 ]; then
+      echo "[ERROR] Backup with ID '$backup_id' not found for server '$server_alias'." >&2
+      exit 1
+    elif [ "$matching_count" -gt 1 ]; then
+      echo "[ERROR] Found multiple backups with the same ID. This should not happen and needs manual fixing!" >&2
+      exit 1
+    fi
+
+    rm -rf "$(echo "$backup_meta" | jq -rc '.path')"
+    if [ $? -ne 0 ]; then
+      echo "[ERROR] Failed to delete backup with ID '$backup_id' for server '$server_alias'." >&2
+      exit 1
+    fi
+    echo "[INFO] Successfully deleted backup with ID '$backup_id' for server '$server_alias'." >&2
+
+    latest_path="$(
+      ./serman.sh backup list "$server_alias" --json-format |
+        jq -rc 'sort_by(.unix_time) | last | .path'
+    )"
+    log "[INFO] Linking latest backup to $latest_path" >&2
+    ln -sf "$latest_path" "${MINECRAFT_SERVER_BACKUP_DIR}/${server_alias}/latest"
+    if [ $? -ne 0 ]; then
+      echo "[ERROR] Failed to create symlink for latest backup." >&2
+      exit 1
+    fi
+    ;;
+  list)
+    server_alias="${args[2]}"
+    if [ -z "$server_alias" ]; then
+      print_usage "${args[0]}" "${args[1]}"
+      exit 1
+    fi
+    # check if server installation is corret
+    server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
+    check_server_installation "$server_directory" || {
+      echo "[ERROR] Server '$server_alias' is corrupted." >&2
+      $VERBOSE || echo "[INFO] Run again with -v for verbose logging." >&2
+      exit 1
+    }
+    # list backup information
+    if in_array "--json-format" "${flags[@]}"; then
+      declare -a json_objs
+    else
+      declare -a table_rows
+    fi
+    table_delim='|'
+    for backup_dir in "${MINECRAFT_SERVER_BACKUP_DIR}/${server_alias}"/*; do
+      # skip symlinks
+      [ -L "$backup_dir" ] && continue
+      # skip if not a directory
+      [ -d "$backup_dir" ] || continue
+      check_server_installation "$backup_dir" || continue
+      backup_path="${backup_dir}"
+      backup_id="$(basename "$backup_path")"
+      backup_unix="$(get_creation_or_mod_time "$backup_path")"
+      if in_array "--json-format" "${flags[@]}"; then
+        json_objs+=("$(
+          jq -nrc --arg id "$backup_id" --arg unix_time "$backup_unix" --arg path "$backup_path" \
+            '{id: $id, unix_time: $unix_time, path: $path}'
+        )")
+      else
+        table_rows+=("${backup_id}${table_delim}${backup_unix}${table_delim}${backup_path}")
+      fi
+    done
+    if in_array "--json-format" "${flags[@]}"; then
+      IFS=',' joined_json="${json_objs[*]}"
+      output="$(jq -nr "[${joined_json}]")"
+    else
+      output="$(print_table "$table_delim" "  " "Backup ID${table_delim}Backup Time${table_delim}Path" "${table_rows[@]}")"
+    fi
+    echo "$output"
+    ;;
+  *)
+    echo "[ERROR] Unknown backup operation: $backup_operation" >&2
+    print_usage "${args[0]}"
     exit 1
-  }
-  bash -c '
-    source ./helpers/backup_server.sh
-  ' _ "$server_alias"
+    ;;
+  esac
   ;;
 uninstall)
   server_alias="${args[1]}"

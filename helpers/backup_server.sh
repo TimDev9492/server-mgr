@@ -1,15 +1,15 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-cd ${SCRIPT_DIR}
-source ../common/utils.sh
+cd "${SCRIPT_DIR}/../"
+source ./common/utils.sh
 
 # Load variables
-if [ ! -f "../load_config.sh" ]; then
+if [ ! -f "./load_config.sh" ]; then
   echo "[ERROR] load_config.sh not found in the script directory."
   exit 1
 fi
-source ../load_config.sh
+source ./load_config.sh
 
 # Check for required commands
 check_prerequisites readlink rsync
@@ -47,7 +47,7 @@ backup_server() {
   local latest_backup_dir="${server_backup_dir}/latest"
   local backup_dir="${server_backup_dir}/${timestamp}"
 
-  local rsync_opts=("-a" "--delete" "--include-from=${SCRIPT_DIR}/../assets/default-include.txt")
+  local rsync_opts=("-a" "--delete" "--include-from=${SCRIPT_DIR}/assets/default-include.txt")
   if [ -d "$latest_backup_dir" ]; then
     rsync_opts+=("--link-dest=$latest_backup_dir")
   fi
