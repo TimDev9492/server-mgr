@@ -1,4 +1,5 @@
 {
   "version": "1.0.0",
-  "homepage": "https://github.com/TimDev9492/server-mgr"
+  "homepage": "https://github.com/TimDev9492/server-mgr",
+  "api_endpoint": "https://fill.papermc.io/v3"
 }

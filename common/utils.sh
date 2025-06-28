@@ -4,8 +4,10 @@ load_project_info() {
   # load environment
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
   cd "${script_dir}/.."
-  HOMEPAGE=$(cat project_info.json | jq -r '.homepage')
-  VERSION=$(cat project_info.json | jq -r '.version')
+  local project_info="$(cat project_info.json)"
+  HOMEPAGE=$(echo "$project_info" | jq -r '.homepage')
+  VERSION=$(echo "$project_info" | jq -r '.version')
+  PAPER_API_ENDPOINT=$(echo "$project_info" | jq -r '.api_endpoint')
 }
 
 load_project_info
