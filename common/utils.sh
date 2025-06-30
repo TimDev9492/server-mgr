@@ -203,14 +203,30 @@ print_table() {
   shift 3
   local -a rows=("$@")
 
+  noheader=false
+
+  if [ -z "$header" ]; then
+    # set header to first row
+    noheader=true
+    if [ ${#rows[@]} -eq 0 ]; then
+      echo "[ERROR] No header or rows provided." >&2
+      return 1
+    fi
+    header="${rows[0]}"
+  fi
+
+  if [[ "$parsing_delimiter" == *"/"* ]]; then
+    echo "[ERROR] Parsing delimiter cannot contain '/' character." >&2
+    return 1
+  fi
+
   # Default delimiter to space if empty
   [[ -z "$parsing_delimiter" ]] && parsing_delimiter=' '
   [[ -z "$column_delimiter" ]] && column_delimiter=' '
-  IFS="$parsing_delimiter"
 
   # Split header and rows into arrays of fields
   local -a headers
-  read -r -a headers <<<"$header"
+  IFS=$'\n' read -rd '' -a headers <<<"$(sed "s/$parsing_delimiter/\n/g" <<<"$header")"
   local num_cols="${#headers[@]}"
 
   # Initialize max width for each column with header lengths
@@ -222,24 +238,27 @@ print_table() {
   # Process rows to determine max width per column
   for row in "${rows[@]}"; do
     local -a fields
-    read -r -a fields <<<"$row"
+    IFS=$'\n' read -rd '' -a fields <<<"$(sed "s/$parsing_delimiter/\n/g" <<<"$row")"
+    # read -r -a fields <<<"$row"
     for ((i = 0; i < num_cols; i++)); do
       [[ -n "${fields[i]}" ]] && ((${#fields[i]} > col_widths[i])) && col_widths[i]=${#fields[i]}
     done
   done
 
   # Print header
-  for ((i = 0; i < num_cols; i++)); do
-    printf "%-*s" "${col_widths[i]}" "${headers[i]}"
-    if ((i < num_cols - 1)); then
-      printf "%s" "${column_delimiter}"
-    fi
-  done
-  echo
+  if ! $noheader; then
+    for ((i = 0; i < num_cols; i++)); do
+      printf "%-*s" "${col_widths[i]}" "${headers[i]}"
+      if ((i < num_cols - 1)); then
+        printf "%s" "${column_delimiter}"
+      fi
+    done
+    echo
+  fi
 
   # Print rows
   for row in "${rows[@]}"; do
-    read -r -a fields <<<"$row"
+    IFS=$'\n' read -rd '' -a fields <<<"$(sed "s/$parsing_delimiter/\n/g" <<<"$row")"
     for ((i = 0; i < num_cols; i++)); do
       printf "%-*s" "${col_widths[i]}" "${fields[i]}"
       if ((i < num_cols - 1)); then
@@ -259,4 +278,118 @@ get_creation_or_mod_time() {
   fi
 
   echo "$unix_time"
+}
+
+unix_to_date() {
+  # check if input is a number
+  if ! is_number "$1"; then
+    return 1
+  fi
+  date -d "@$1" +"%Y-%m-%d %H:%M:%S"
+}
+
+# Use the following approach:
+# subtract biggest unit, then check if threshold is passed,
+# otherwise subtract next biggest unit, and so on.
+# Using date -d "-1 month" for example
+print_elapsed_time() {
+  local event_time="$1"
+  local reference_time="$2"
+
+  if ((event_time > reference_time)); then
+    echo "Error: event_time is after reference_time"
+    return 1
+  fi
+
+  local units=("year" "month" "day" "hour" "minute")
+  local unit_values=(0 0 0 0 0)
+  local unit_format=("y" "m" "d" "h" "min")
+  local current_unit_index=0
+
+  i=0
+  while ((i < ${#units[@]})); do
+    local backtrack_str=""
+    for part in "${!units[@]}"; do
+      local value="${unit_values[part]}"
+      if ((part == i)); then ((value++)); fi
+      backtrack_str+="${value} ${units[part]} ago "
+    done
+
+    # Trim trailing space
+    backtrack_str="${backtrack_str%" "}"
+
+    local backtrack_time="$(date -d "$(unix_to_date "$reference_time") $backtrack_str" +%s)"
+    if ((backtrack_time < event_time)); then
+      ((i++))
+      continue
+    fi
+    ((unit_values[i]++))
+  done
+
+  # format the output
+
+  # --- 1. Decide which format to use ---
+  # The index for 'm' (months) is 1.
+  # The condition is: if the month value is > 1.
+  local indices_to_use
+  if ((unit_values[0] > 0 || unit_values[1] > 0)); then
+    # Use years, months, days (indices 0, 1, 2)
+    indices_to_use=(0 1 2)
+  else
+    # Use days, hours, minutes (indices 2, 3, 4)
+    indices_to_use=(2 3 4)
+  fi
+
+  # --- 2. Build the output string respecting the rules ---
+  local result_parts=()
+  local found_first_non_zero=false
+  # Get the last index from our chosen set
+  local last_index=${indices_to_use[-1]}
+
+  for i in "${indices_to_use[@]}"; do
+    local value=${unit_values[i]}
+    local unit=${unit_format[i]}
+
+    # Rule: Leave out leading zeros
+    if ((value > 0)); then
+      found_first_non_zero=true
+    fi
+
+    # We add a part to the result if:
+    #   a) We have already found a non-zero value (so we print everything that follows)
+    #   b) This is the very last unit, which must always be printed
+    if [[ "$found_first_non_zero" == true || "$i" -eq "$last_index" ]]; then
+      result_parts+=("${value}${unit}")
+    fi
+  done
+
+  # --- 3. Join the parts with spaces and print ---
+  (
+    IFS=' '
+    echo "${result_parts[*]}"
+  )
+}
+
+colorize_output() {
+  local input="$1"
+  local color="${2:-green}" # Default color is green
+  local color_code
+
+  # Map color names to ANSI codes
+  case "$color" in
+  black) color_code="0;30" ;;
+  red) color_code="0;31" ;;
+  green) color_code="0;32" ;;
+  yellow) color_code="0;33" ;;
+  blue) color_code="0;34" ;;
+  magenta) color_code="0;35" ;;
+  cyan) color_code="0;36" ;;
+  white) color_code="0;37" ;;
+  *) color_code="0;32" ;; # Default to green
+  esac
+
+  # Print each line with color
+  while IFS= read -r line; do
+    echo -e "\e[${color_code}m${line}\e[0m"
+  done <<<"$input"
 }

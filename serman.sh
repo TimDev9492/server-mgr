@@ -199,6 +199,15 @@ backup)
       ./serman.sh backup list "$server_alias" --json-format |
         jq -rc 'sort_by(.unix_time) | last | .path'
     )"
+    if [ "$latest_path" == "null" ]; then
+      log "[INFO] No backups left for server '$server_alias'. Removing 'latest' symlink and backup directory."
+      rm -rf "${MINECRAFT_SERVER_BACKUP_DIR}/${server_alias}"
+      if [ $? -ne 0 ]; then
+        log "[ERROR] Failed to remove backup directory for server '$server_alias'."
+        exit 1
+      fi
+      exit 0
+    fi
     log "[INFO] Linking latest backup to $latest_path" >&2
     ln -sf "$latest_path" "${MINECRAFT_SERVER_BACKUP_DIR}/${server_alias}/latest"
     if [ $? -ne 0 ]; then
@@ -291,17 +300,20 @@ uninstall)
 status)
   installed_servers="$(list_installed_servers)"
 
-  # First, find the maximum width of the alias names
-  max_width=0
-  while IFS= read -r alias; do
-    ((${#alias} > max_width)) && max_width=${#alias}
-    aliases+=("$alias")
-  done <<<"$installed_servers"
+  [ -z "$installed_servers" ] && exit 0
 
-  while IFS= read -r installed_server_alias; do
-    status=$(get_server_status "$installed_server_alias")
-    printf "%-${max_width}s : %s\n" "$installed_server_alias" "$status"
+  parsing_delimiter='|'
+  out_delimiter=' : '
+  status_lines=()
+  while IFS='' read -r alias; do
+    status_lines+=("${alias}${parsing_delimiter}$(get_server_status "$alias")")
   done <<<"$installed_servers"
+  if [ ${#status_lines[@]} -eq 0 ]; then
+    log "[INFO] No servers installed."
+    exit 0
+  fi
+
+  print_table "$parsing_delimiter" "$out_delimiter" "" "${status_lines[@]}"
   ;;
 start)
   server_alias="${args[1]}"
