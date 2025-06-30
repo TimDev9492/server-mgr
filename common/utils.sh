@@ -393,3 +393,16 @@ colorize_output() {
     echo -e "\e[${color_code}m${line}\e[0m"
   done <<<"$input"
 }
+
+# Prompt the user for a value with a default
+# Usage: prompt_default_value "Enter your name" "John Doe"
+prompt_default_value() {
+  local prompt="$1"
+  local default="$2"
+
+  local input=''
+  read -p "$prompt [$default]: " input
+  read_status="$?"
+  echo "${input:-$default}" # If input is empty, return default value
+  return $read_status       # Return the status of the read command
+}

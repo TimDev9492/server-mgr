@@ -9,14 +9,14 @@ source ./common/utils.sh
 
 VERBOSE=false
 if in_array "-v" "$@"; then
-    VERBOSE=true
+  VERBOSE=true
 fi
 
 # Array of config locations in priority order
 CONFIG_PATHS=(
-    "$HOME/.config/server-mgr/config.sh"
-    "/etc/server-mgr/configh.sh"
-    "/usr/local/share/server-mgr/config.sh"
+  "$HOME/.config/server-mgr/config.sh"
+  "/usr/local/share/server-mgr/config.sh"
+  "/etc/server-mgr/configh.sh"
 )
 
 # Fallback file
@@ -26,31 +26,35 @@ DEFAULT_CONFIG_PATH="${SCRIPT_DIR}/default_config.sh"
 sourced=false
 
 log() {
-    $VERBOSE && echo "$@" >&2
+  $VERBOSE && echo "$@" >&2
 }
 
 # Loop through locations and source the first one that exists
 for config in "${CONFIG_PATHS[@]}"; do
-    if [[ -f "$config" ]]; then
-        log "[INFO] Using config: $config"
-        source "$config"
-        sourced=true
-        break
-    fi
+  if [[ -f "$config" ]]; then
+    log "[INFO] Using config: $config"
+    source "$config"
+    sourced=true
+    break
+  fi
 done
 
 # Source the fallback if none of the above exist
 if ! $sourced; then
-    if [ -f "$DEFAULT_CONFIG_PATH" ]; then
-        config_destination_path="${CONFIG_PATHS[0]}"
-        log "[INFO] Copying default config to $config_destination_path"
-        mkdir -p "$(dirname "$config_destination_path")"
-        cp "$DEFAULT_CONFIG_PATH" "$config_destination_path"
-        chmod +x "$config_destination_path"
-        log "[INFO] Using default config."
-        source "$config_destination_path"
-    else
-        log "[ERROR] No default config found!"
-        exit 1
+  if [ -f "$DEFAULT_CONFIG_PATH" ]; then
+    config_destination_path="${CONFIG_PATHS[0]}"
+    log "[INFO] Copying default config to $config_destination_path"
+    mkdir -p "$(dirname "$config_destination_path")"
+    cp "$DEFAULT_CONFIG_PATH" "$config_destination_path"
+    if [ $? -ne 0 ]; then
+      log "[ERROR] Failed to copy default config to $config_destination_path"
+      exit 1
     fi
+    chmod +x "$config_destination_path"
+    log "[INFO] Using default config."
+    source "$config_destination_path"
+  else
+    log "[ERROR] No default config found!"
+    exit 1
+  fi
 fi
