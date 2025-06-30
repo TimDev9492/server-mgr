@@ -18,7 +18,7 @@ get_project_user_agent() {
 
 # check if required programs are installed
 check_prerequisites() {
-  local required_commands=("curl" "jq" "which" "awk" "grep" "sed" "screen")
+  local required_commands=("curl" "jq" "which" "awk" "grep" "sed" "screen" "cut")
 
   # Accept more requirements passed as arguments
   if [ $# -gt 0 ]; then
