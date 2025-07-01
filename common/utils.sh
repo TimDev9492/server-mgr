@@ -18,7 +18,7 @@ get_project_user_agent() {
 
 # check if required programs are installed
 check_prerequisites() {
-  local required_commands=("curl" "jq" "which" "awk" "grep" "sed" "screen" "cut")
+  local required_commands=("curl" "jq" "which" "awk" "grep" "sed" "screen" "cut" "printf" "date")
 
   # Accept more requirements passed as arguments
   if [ $# -gt 0 ]; then
@@ -405,4 +405,54 @@ prompt_default_value() {
   read_status="$?"
   echo "${input:-$default}" # If input is empty, return default value
   return $read_status       # Return the status of the read command
+}
+
+is_valid_alias() {
+  local alias="$1"
+  local regex='^[a-zA-Z0-9_-]+$' # Allow alphanumeric characters and hyphens
+  [[ "$alias" =~ $regex ]]
+  return $?
+}
+
+json_to_yaml() {
+  # Read JSON from the first argument or from stdin if no argument is provided.
+  local json_input="$1"
+
+  # The core jq script for conversion.
+  # This script defines a recursive function to handle the conversion.
+  local jq_script='
+    def to_yaml_recursive(indent):
+      type as $type
+      | if $type == "object" then
+          if . == {} then "{}"
+          else
+            to_entries
+            | map(
+                indent + .key + ":" +
+                (
+                  if (.value | type) == "object" or (.value | type) == "array" then "\n" else " " end
+                ) +
+                (.value | to_yaml_recursive(indent + "  "))
+              )
+            | join("\n")
+          end
+      elif $type == "array" then
+        if . == [] then "[]"
+        else
+          # For arrays, print each element prefixed with "- " at current indentation
+          map(
+            indent + "- " + to_yaml_recursive(indent + "  ")
+          )
+          | join("\n")
+        end
+      else
+        tojson
+      end;
+
+    to_yaml_recursive("")
+  '
+
+  # Execute jq with the script and input.
+  # The -r flag removes the outer quotes from the final output strings.
+  echo "$json_input" | jq -r "$jq_script"
 }
