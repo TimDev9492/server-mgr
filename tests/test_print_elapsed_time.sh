@@ -7,32 +7,13 @@ source ./setup_testing.sh
 source ../common/utils.sh
 tests_failed=0
 
-# Helper function to run a test
-run_test() {
-  local expected="$1"
-  local description="$2"
-  shift 2
-
-  if "$@"; then
-    actual=0
-  else
-    actual=1
-  fi
-
-  if [[ "$actual" -eq "$expected" ]]; then
-    echo "✅ PASS: $description"
-  else
-    echo "❌ FAIL: $description (expected $expected, got $actual)"
-    tests_failed=$((tests_failed + 1))
-  fi
-}
-
 filename=$(basename "$0")
 function_name="${filename#test_}"
 function_name="${function_name%.sh}"
 
 if ! declare -f "$function_name" >/dev/null; then
   echo "❌ FAIL: Function '$function_name' does not exist."
+  exit 1
 fi
 
 # Wrapper for output comparison using run_test

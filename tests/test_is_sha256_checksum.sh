@@ -14,8 +14,8 @@ function_name="${function_name%.sh}"
 
 # Check if function exists
 if ! declare -f "$function_name" >/dev/null; then
-    echo "❌ FAIL: Function '$function_name' does not exist."
-    # exit 1
+  echo "❌ FAIL: Function '$function_name' does not exist."
+  exit 1
 fi
 
 # Test cases for is_sha256_checksum

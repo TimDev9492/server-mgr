@@ -18,15 +18,15 @@ function_name="${filename#test_}"
 function_name="${function_name%.sh}"
 # check if function exists
 if ! declare -f "$function_name" >/dev/null; then
-    echo "❌ FAIL: Function '$function_name' does not exist."
-    # exit 1
+  echo "❌ FAIL: Function '$function_name' does not exist."
+  exit 1
 fi
 
 # Helper to test output
 check_user_agent_output() {
-    expected_output="server-mgr/$VERSION ($HOMEPAGE)"
-    actual_output=$(get_project_user_agent)
-    [[ "$actual_output" == "$expected_output" ]]
+  expected_output="server-mgr/$VERSION ($HOMEPAGE)"
+  actual_output=$(get_project_user_agent)
+  [[ "$actual_output" == "$expected_output" ]]
 }
 
 run_test 0 "Correct user agent output with valid VERSION and HOMEPAGE" check_user_agent_output
@@ -35,9 +35,9 @@ run_test 0 "Correct user agent output with valid VERSION and HOMEPAGE" check_use
 export VERSION=""
 export HOMEPAGE=""
 check_empty_user_agent_output() {
-    expected_output="server-mgr/ ()"
-    actual_output=$(get_project_user_agent)
-    [[ "$actual_output" == "$expected_output" ]]
+  expected_output="server-mgr/ ()"
+  actual_output=$(get_project_user_agent)
+  [[ "$actual_output" == "$expected_output" ]]
 }
 
 run_test 0 "User agent output with empty VERSION and HOMEPAGE" check_empty_user_agent_output
