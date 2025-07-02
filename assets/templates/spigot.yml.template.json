@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "restart-script": "./bin/startServer.sh"
+  },
+  "world-settings": {
+    "default": {
+      "entity-tracking-range": {
+        "players": 128,
+        "animals": 128,
+        "monsters": 64,
+        "misc": 32,
+        "other": 64
+      }
+    }
+  }
+}
