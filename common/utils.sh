@@ -457,8 +457,8 @@ json_to_yaml() {
   echo "$json_input" | jq -r "$jq_script"
 }
 
-# Read the keys and values of a JSON object of depth 1
-# into two arrays, one for keys and one for values.
+# Read the keys and values of a JSON object into
+# two arrays, one for keys and one for values.
 json_object_to_key_value_pairs() {
   local -n _keys="$1"
   local -n _values="$2"
@@ -471,15 +471,11 @@ json_object_to_key_value_pairs() {
   if ! echo "$json_object" | jq -e 'type == "object"' >/dev/null 2>&1; then
     return 1
   fi
-  # test if object has depth 1
-  if ! echo "$json_object" | jq -e 'all(.[]; type != "object" and type != "array")' >/dev/null 2>&1; then
-    return 1
-  fi
   local key_count="$(echo "$json_object" | jq 'length')"
   local key_index
   for ((key_index = 0; key_index < key_count; key_index++)); do
     key="$(echo "$json_object" | jq -r "keys[$key_index]")"
-    value="$(echo "$json_object" | jq -r --arg key "$key" '.[$key]')"
+    value="$(echo "$json_object" | jq -rc --arg key "$key" '.[$key]')"
     _keys+=("$key")
     _values+=("$value")
   done

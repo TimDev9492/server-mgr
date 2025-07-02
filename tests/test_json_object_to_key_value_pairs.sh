@@ -65,21 +65,25 @@ expected_keys=("key")
 expected_vals=("null")
 run_test 0 "Null value" check_keys_and_values "$json" expected_keys[@] expected_vals[@]
 
-# === Invalid input cases (expect failure) ===
-
-json='["a", "b", "c"]'
-run_test 1 "Array instead of object" json_object_to_key_value_pairs keys values "$json"
-
 json='{"a":1,"b":{"nested":2}}'
-run_test 1 "Object with nested object" json_object_to_key_value_pairs keys values "$json"
+expected_keys=("a" "b")
+expected_vals=("1" '{"nested":2}')
+run_test 0 "Object with nested object" check_keys_and_values "$json" expected_keys[@] expected_vals[@]
 
 json='{"a":1,"b":[1,2,3]}'
-run_test 1 "Object with array value" json_object_to_key_value_pairs keys values "$json"
+expected_keys=("a" "b")
+expected_vals=("1" '[1,2,3]')
+run_test 0 "Object with array value" check_keys_and_values "$json" expected_keys[@] expected_vals[@]
 
-json='{"a":1, "b":}'
+# === Invalid input cases (expect failure) ===
+
+json='["a", "b", "c"]' # array, not object
+run_test 1 "Array instead of object" json_object_to_key_value_pairs keys values "$json"
+
+json='{"a":1, "b":}' # malformed JSON
 run_test 1 "Malformed JSON" json_object_to_key_value_pairs keys values "$json"
 
-json='not a json string'
+json='not a json string' # invalid JSON
 run_test 1 "Non-JSON input" json_object_to_key_value_pairs keys values "$json"
 
 # === Done ===
