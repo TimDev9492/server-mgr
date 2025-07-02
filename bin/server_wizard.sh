@@ -126,10 +126,14 @@ gum_prompt_json_values() {
   local prompt_count="$(echo "$prompts" | jq 'length')"
   # run prompts for values
   if [ "$prompt_count" -gt 0 ]; then
-    local key_index
-    for ((key_index = 0; key_index < prompt_count; key_index++)); do
-      key="$(echo "$prompts" | jq -r "keys[$key_index]")"
-      value="$(echo "$prompts" | jq -r --arg key "$key" '.[$key]')"
+    local keys=()
+    local values=()
+    json_object_to_key_value_pairs keys values "$prompts"
+    [ $? -ne 0 ] && return 1
+    local i
+    for i in "${!keys[@]}"; do
+      local key="${keys[$i]}"
+      local value="${values[$i]}"
       local formatted_key_name
       if [ -n "$parent_key" ]; then
         formatted_key_name="${parent_key}.${key}"
@@ -145,10 +149,14 @@ gum_prompt_json_values() {
   fi
   # prompt nested objects recursively
   if [ "$nested_object_count" -gt 0 ]; then
-    local key_index
-    for ((key_index = 0; key_index < nested_object_count; key_index++)); do
-      key="$(echo "$nested_objects" | jq -r "keys[$key_index]")"
-      value="$(echo "$nested_objects" | jq -r --arg key "$key" '.[$key]')"
+    local keys=()
+    local values=()
+    json_object_to_key_value_pairs keys values "$nested_objects"
+    [ $? -ne 0 ] && return 1
+    local i
+    for i in "${!keys[@]}"; do
+      local key="${keys[$i]}"
+      local value="${values[$i]}"
       local recursive_return_value
       recursive_return_value="$(gum_prompt_json_values "$prev_status" "$value" "$config_name" "$key" "$total_value_count" "$current_value_count" "true")"
       [ $? -eq 130 ] && return 130
