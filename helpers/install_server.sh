@@ -68,6 +68,15 @@ if [ ! -d "$server_dir" ]; then
   exit 1
 fi
 
+# Copy json config to server directory
+svrmgr_dir="${server_dir}/srvmgr"
+mkdir -p "$svrmgr_dir"
+if [ ! -d "${server_dir}/srvmgr" ]; then
+  log "[ERROR] Failed to create srvmgr directory in server directory: $svrmgr_dir"
+  exit 1
+fi
+echo "$json_config" >"${svrmgr_dir}/init.json"
+
 # Agree to the EULA
 eula_file_path="${server_dir}/eula.txt"
 cp "${SCRIPT_DIR}/assets/templates/eula.txt.template" "$eula_file_path"

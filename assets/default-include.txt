@@ -12,6 +12,8 @@
 # user scripts
 + bin/
 + bin/**
++ srvmgr/
++ srvmgr/**
 
 # logs
 + logs/
@@ -22,7 +24,7 @@
 + banned-players.json
 + bukkit.yml
 + commands.yml
-+ ops.josn
++ ops.json
 + permissions.yml
 + server.properties
 + spigot.yml
