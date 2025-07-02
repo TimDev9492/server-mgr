@@ -239,22 +239,11 @@ gum confirm \
   --negative="Disagree" \
   --default=1 || abort_server_creation
 eula_agree_time="$(date -u)"
+server_config_json="$(add_to_json_object "$server_config_json" "eula_agree_timestamp" "$eula_agree_time")"
 
 # Select java flags
-recommended_java_flags="$(get_recommended_java_settings_json_array "$minecraft_version")"
-
-flag_count="$(echo "$recommended_java_flags" | jq 'length')"
 java_flags_array="[]"
-if [ "$flag_count" -gt 0 ]; then
-  selected_flags="$(
-    echo "$recommended_java_flags" | jq -r '.[]' | gum choose \
-      --header="Select recommended Java flags" \
-      --selected='*' \
-      --no-limit
-  )"
-  [ $? -eq 130 ] && abort_server_creation
-  java_flags_array="$(echo "$selected_flags" | jq -Rsrc 'split("\n") | map(select(length > 0))')"
-fi
+
 system_ram_gb="$(get_system_ram_gb)"
 if [ -z "$system_ram_gb" ]; then
   recommended_ram_gb=4
@@ -270,10 +259,25 @@ max_ram_gb="$(
 )"
 [ $? -eq 130 ] && abort_server_creation
 java_flags_array="$(echo "$java_flags_array" | jq -rc --arg max_ram "$max_ram_gb" --arg initial_ram "512m" '. + ["-Xmx" + $max_ram, "-Xms" + $initial_ram]')"
+
+# Add recommended Java flags
+recommended_java_flags="$(get_recommended_java_settings_json_array "$minecraft_version")"
+flag_count="$(echo "$recommended_java_flags" | jq 'length')"
+if [ "$flag_count" -gt 0 ]; then
+  selected_flags="$(
+    echo "$recommended_java_flags" | jq -r '.[]' | gum choose \
+      --header="Select recommended Java flags" \
+      --selected='*' \
+      --no-limit
+  )"
+  [ $? -eq 130 ] && abort_server_creation
+  recommended_java_flags_array="$(echo "$selected_flags" | jq -Rsrc 'split("\n") | map(select(length > 0))')"
+fi
+java_flags_array="$(echo "$java_flags_array" | jq -rc --argjson flags "$recommended_java_flags_array" '. + $flags')"
 server_config_json="$(add_json_to_json_object "$server_config_json" "java_flags" "$java_flags_array")"
 
 # Configure server.properties
-server_property_template="$(grep -v -e '^$' -e '^\s*#' "${SCRIPT_DIR}/assets/templates/server.properties.tmpl")"
+server_property_template="$(grep -v -e '^$' -e '^\s*#' "${SCRIPT_DIR}/assets/templates/server.properties.template")"
 server_property_count="$(echo "$server_property_template" | wc -l)"
 current_property_count=1
 server_properties_json="{}"
@@ -304,6 +308,9 @@ spigot_yml_json="$(gum_prompt_json_values 0 "$spigot_yml_template_json" "spigot.
 [ $? -eq 130 ] && abort_server_creation
 server_config_json="$(add_json_to_json_object "$server_config_json" "spigot.yml" "$spigot_yml_json")"
 
-echo "$server_config_json" | jq .
-
-exit 0
+echo "$server_config_json" | jq -rc | ./helpers/install_server.sh
+if [ $? -ne 0 ]; then
+  echo "[ERROR] Failed to install server with the provided configuration." >&2
+  exit 1
+fi
+echo "[SUCCESS] Server '$server_alias' created successfully!" >&2
