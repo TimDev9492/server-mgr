@@ -16,6 +16,8 @@ source ./load_config.sh
 # Check for required commands
 check_prerequisites gum
 
+out_file="$1"
+
 abort_server_creation() {
   echo "[ERROR] Server creation aborted by user." >&2
   exit 1
@@ -308,9 +310,18 @@ spigot_yml_json="$(gum_prompt_json_values 0 "$spigot_yml_template_json" "spigot.
 [ $? -eq 130 ] && abort_server_creation
 server_config_json="$(add_json_to_json_object "$server_config_json" "spigot.yml" "$spigot_yml_json")"
 
-echo "$server_config_json" | jq -rc | ./helpers/install_server.sh
-if [ $? -ne 0 ]; then
-  echo "[ERROR] Failed to install server with the provided configuration." >&2
-  exit 1
+if [ -z "$out_file" ]; then
+  echo "$server_config_json" | jq -rc | ./helpers/install_server.sh
+  if [ $? -ne 0 ]; then
+    echo "[ERROR] Failed to install server with the provided configuration." >&2
+    exit 1
+  fi
+  echo "[SUCCESS] Server '$server_alias' created successfully!" >&2
+else
+  echo "$server_config_json" | jq -r >"$out_file"
+  if [ $? -ne 0 ]; then
+    echo "[ERROR] Failed to write server configuration to '$out_file'." >&2
+    exit 1
+  fi
+  echo "[SUCCESS] Server configuration written to '$out_file'." >&2
 fi
-echo "[SUCCESS] Server '$server_alias' created successfully!" >&2
