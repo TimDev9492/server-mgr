@@ -99,18 +99,23 @@ gum_enter_config_value() {
 }
 
 gum_prompt_json_values() {
+  local return_delimiter="|"
   local prev_status="$1"
   local json="$2"
   local config_name="$3"
   local parent_key="$4"
   local total_value_count="$5"
-  current_value_count="$6"
+  local current_value_count="$6"
+  local is_recursive_call="$7"
   [ "$prev_status" -eq 130 ] && return 130
   if [ -z "$total_value_count" ]; then
     total_value_count="$(count_values_in_json_object "$json")"
   fi
   if [ -z "$current_value_count" ]; then
     current_value_count=1
+  fi
+  if [ -z "$is_recursive_call" ]; then
+    is_recursive_call=false
   fi
   local output_json="{}"
   local nested_arrays="$(echo "$json" | jq -r 'with_entries(select(.value | type == "array"))')"
@@ -133,8 +138,8 @@ gum_prompt_json_values() {
       fi
       local entered_value
       entered_value="$(gum_enter_config_value "${config_name}" "$formatted_key_name" "$value" "(${current_value_count}/${total_value_count})")"
-      output_json="$(add_to_json_object "$output_json" "$key" "$entered_value")"
       [ $? -eq 130 ] && return 130
+      output_json="$(add_to_json_object "$output_json" "$key" "$entered_value")"
       ((current_value_count++))
     done
   fi
@@ -144,9 +149,12 @@ gum_prompt_json_values() {
     for ((key_index = 0; key_index < nested_object_count; key_index++)); do
       key="$(echo "$nested_objects" | jq -r "keys[$key_index]")"
       value="$(echo "$nested_objects" | jq -r --arg key "$key" '.[$key]')"
-      local nested_output_json
-      nested_output_json="$(gum_prompt_json_values "$prev_status" "$value" "$config_name" "$key" "$total_value_count" "$current_value_count")"
+      local recursive_return_value
+      recursive_return_value="$(gum_prompt_json_values "$prev_status" "$value" "$config_name" "$key" "$total_value_count" "$current_value_count" "true")"
       [ $? -eq 130 ] && return 130
+      local updated_current_value="${recursive_return_value%%"$return_delimiter"*}"
+      local nested_output_json="${recursive_return_value#*"$return_delimiter"}"
+      current_value_count="$updated_current_value"
       output_json="$(add_json_to_json_object "$output_json" "$key" "$nested_output_json")"
     done
   fi
@@ -154,6 +162,10 @@ gum_prompt_json_values() {
     echo "[WARNING] Skipping $nested_array_count nested arrays..." >&2
   fi
 
+  if $is_recursive_call; then
+    echo "${current_value_count}${return_delimiter}${output_json}"
+    return 0
+  fi
   echo "$output_json"
   return 0
 }
@@ -280,7 +292,6 @@ server_config_json="$(add_json_to_json_object "$server_config_json" "server.prop
 
 # Configure spigot.yml
 spigot_yml_template_json="$(grep -v '^$' "${SCRIPT_DIR}/assets/templates/spigot.yml.template.json")"
-# TODO: fix exiting on user abort
 spigot_yml_json="$(gum_prompt_json_values 0 "$spigot_yml_template_json" "spigot.yml")"
 [ $? -eq 130 ] && abort_server_creation
 server_config_json="$(add_json_to_json_object "$server_config_json" "spigot.yml" "$spigot_yml_json")"
