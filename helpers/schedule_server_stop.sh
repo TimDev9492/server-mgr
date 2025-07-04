@@ -6,8 +6,8 @@ cd ${SCRIPT_DIR}
 source ../common/utils.sh
 
 if (($# < 2)); then
-    echo "Usage: $0 <server_alias> <seconds> <note|null> <kick_reason>"
-    exit 1
+  echo "Usage: $0 <server_alias> <seconds> <note|null> <kick_reason>"
+  exit 1
 fi
 
 server_alias="$1"
@@ -19,28 +19,30 @@ message="$*"
 print_timestamps=(300 180 120 60 30 10 5 4 3 2 1)
 
 while ((total_seconds > 0)); do
-    if in_array "$total_seconds" "${print_timestamps[@]}"; then
-        echo "[INFO] Stopping server $server_alias in $(print_time $total_seconds)"
-        prefix=""
-        [ "$note" != "null" ] && prefix="[$note] "
-        send_server_command "$server_alias" "say ${prefix}Stopping server in $(print_time $total_seconds)"
-        if [ ! "$?" -eq 0 ]; then
-            echo "[ERROR] Failed to send command to server $server_alias" >&2
-            exit 1
-        fi
+  if in_array "$total_seconds" "${print_timestamps[@]}"; then
+    echo "[INFO] Stopping server $server_alias in $(print_time $total_seconds)"
+    prefix=""
+    [ "$note" != "null" ] && prefix="[$note] "
+    send_server_command "$server_alias" "say ${prefix}Stopping server in $(print_time $total_seconds)"
+    if [ ! "$?" -eq 0 ]; then
+      echo "[ERROR] Failed to send command to server $server_alias" >&2
+      exit 1
     fi
-    sleep 1
-    ((total_seconds--))
+  fi
+  sleep 1
+  ((total_seconds--))
 done
 
 send_server_command "$server_alias" "kick @a $message"
 send_server_command "$server_alias" "stop"
 if [ ! "$?" -eq 0 ]; then
-    echo "[ERROR] Failed to stop server $server_alias" >&2
-    exit 1
+  echo "[ERROR] Failed to stop server $server_alias" >&2
+  exit 1
 fi
 
 # wait for server to stop
 while [ "$(get_server_status "$server_alias")" == "Running" ]; do
-    sleep 1
+  sleep 1
 done
+
+exit 0

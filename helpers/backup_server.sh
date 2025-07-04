@@ -102,3 +102,5 @@ else
   echo "[ERROR] Backup failed."
   exit 1
 fi
+
+exit 0

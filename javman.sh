@@ -8,9 +8,9 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd ${SCRIPT_DIR}
 source ./common/utils.sh
 
-# Parse command line arguments into flags and positional arguments
 VERBOSE=false
 
+# Parse command line arguments into flags and positional arguments
 parse_args flags args "$@"
 
 # parse the flags
@@ -173,3 +173,5 @@ install)
   exit 1
   ;;
 esac
+
+exit 0

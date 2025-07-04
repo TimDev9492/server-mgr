@@ -13,8 +13,11 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "${SCRIPT_DIR}/../"
 source ./common/utils.sh
 
+# parse command line arguments
+parse_args flags args "$@"
+
 VERBOSE=false
-if in_array "-v" "$@"; then
+if in_array "-v" "${flags[@]}"; then
   VERBOSE=true
 fi
 
@@ -29,8 +32,14 @@ if [ ! -f "./load_config.sh" ]; then
 fi
 source ./load_config.sh
 
-# Read json string from stdin
-json_config=$(cat)
+# Read json string from first argument or stdin
+if [ -n "${args[0]}" ]; then
+  # Read from the first argument
+  json_config="${args[0]}"
+else
+  # Read from stdin
+  json_config=$(cat)
+fi
 
 # Test if json_config is a valid JSON object
 if ! echo "$json_config" | jq 'empty' 2>/dev/null; then
@@ -147,3 +156,5 @@ else
 fi
 
 log "[INFO] Successfully installed server '$server_alias' at $server_dir"
+
+exit 0

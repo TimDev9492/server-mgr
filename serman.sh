@@ -18,9 +18,9 @@ source ./load_config.sh
 # Check for required commands
 check_prerequisites
 
-# Parse command line arguments into flags and positional arguments
 VERBOSE=false
 
+# Parse command line arguments into flags and positional arguments
 parse_args flags args "$@"
 
 # parse the flags
@@ -389,3 +389,5 @@ stop)
   exit 1
   ;;
 esac
+
+exit 0

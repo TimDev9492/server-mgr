@@ -8,6 +8,12 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd ${SCRIPT_DIR}
 source ./common/utils.sh
 
+# logging
+VERBOSE=false
+log() {
+  $VERBOSE && echo "$@" >&2
+}
+
 # Load variables
 if [ ! -f "./load_config.sh" ]; then
   echo "[ERROR] load_config.sh not found in the script directory." >&2
@@ -18,7 +24,13 @@ source ./load_config.sh
 # Check for required commands
 check_prerequisites
 
-# parse arguments
+# Parse command line arguments into flags and positional arguments
+parse_args flags args "$@"
+
+if in_array "-v" "${flags[@]}"; then
+  VERBOSE=true
+fi
+
 operations=("install" "list-versions" "list-builds" "link")
 
 print_usage() {
@@ -47,8 +59,8 @@ print_usage() {
   fi
 }
 
-if [ -z "$1" ]; then
-  print_usage "$1"
+if [ -z "${args[0]}" ]; then
+  print_usage "${args[0]}"
   exit 1
 fi
 
@@ -129,18 +141,18 @@ construct_latest_jar_name() {
   echo "${project}-latest.jar"
 }
 
-operation="$1"
+operation="${args[0]}"
 
 case "$operation" in
 install)
-  if [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+  if [ -z "${args[1]}" ] || [ -z "${args[2]}" ] || [ -z "${args[3]}" ]; then
     print_usage "$operation"
     exit 1
   fi
 
-  project="$2"
-  version="$3"
-  build="$4"
+  project="${args[1]}"
+  version="${args[2]}"
+  build="${args[3]}"
 
   build_info=$(fetch_api "${PAPER_API_ENDPOINT}/projects/${project}/versions/${version}/builds/${build}")
   api_jar_name=$(echo "$build_info" |
@@ -170,7 +182,7 @@ install)
     chmod +x "${output_path}"
     latest_jar_filename=$(get_latest_build_file "$project" "$version")
     if [ "$latest_jar_filename" == "null" ]; then
-      echo "[ERROR] Unexpected failuer: No latest jar file found for project '$project' and version '$version'." >&2
+      echo "[ERROR] Unexpected failure: No latest jar file found for project '$project' and version '$version'." >&2
       exit 1
     fi
     # ln -sf "${jar_output_directory}/${latest_jar_filename}" "${jar_output_directory}/${project}-latest.jar"
@@ -182,27 +194,27 @@ install)
   fi
   ;;
 list-versions)
-  if [ -z "$2" ]; then
+  if [ -z "${args[1]}" ]; then
     print_usage "$operation"
     exit 1
   fi
 
-  list_versions "$2"
+  list_versions "${args[1]}"
   ;;
 list-builds)
-  if [ -z "$2" ] || [ -z "$3" ]; then
+  if [ -z "${args[1]}" ] || [ -z "${args[2]}" ]; then
     print_usage "$operation"
     exit 1
   fi
 
-  list_builds "$2" "$3"
+  list_builds "${args[1]}" "${args[2]}"
   ;;
 link)
-  link_name="$2"
-  project="$3"
-  version="$4"
-  build="$5"
-  channel="$6"
+  link_name="${args[1]}"
+  project="${args[2]}"
+  version="${args[3]}"
+  build="${args[4]}"
+  channel="${args[5]}"
   target_filename=''
   if [ -z "$link_name" ] || [ -z "$project" ] || [ -z "$version" ] || [ -z "$build" ]; then
     print_usage "$operation"
@@ -261,7 +273,7 @@ link)
     echo "[ERROR] Failed to create symlink '$link_name' -> '$target_filename'" >&2
     exit 1
   fi
-  echo "[INFO] Successfully linked '$link_name' to '$target_filename'" >&2
+  log "[INFO] Successfully linked '$link_name' to '$target_filename'" >&2
   ;;
 *)
   echo "[ERROR] Unknown operation: $operation" >&2
@@ -269,3 +281,5 @@ link)
   exit 1
   ;;
 esac
+
+exit 0
