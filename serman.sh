@@ -221,13 +221,6 @@ backup)
       print_usage "${args[0]}" "${args[1]}"
       exit 1
     fi
-    # check if server installation is corret
-    server_directory="${MINECRAFT_SERVER_DIR}/${server_alias}"
-    check_server_installation "$server_directory" || {
-      echo "[ERROR] Server '$server_alias' is corrupted." >&2
-      $VERBOSE || echo "[INFO] Run again with -v for verbose logging." >&2
-      exit 1
-    }
     # list backup information
     if in_array "--json-format" "${flags[@]}"; then
       declare -a json_objs
