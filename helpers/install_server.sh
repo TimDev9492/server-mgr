@@ -84,7 +84,7 @@ if [ ! -d "${server_dir}/srvmgr" ]; then
   log "[ERROR] Failed to create srvmgr directory in server directory: $svrmgr_dir"
   exit 1
 fi
-echo "$json_config" >"${svrmgr_dir}/init.json"
+echo "$json_config" | jq -Mr '.' >"${svrmgr_dir}/init.json"
 
 # Agree to the EULA
 eula_file_path="${server_dir}/eula.txt"
@@ -127,8 +127,6 @@ if [ $? -ne 0 ]; then
 fi
 # Make the startServer.sh script executable
 chmod +x "$start_script_path"
-
-# if ! echo "$json_object" | jq -e 'type == "object"' >/dev/null 2>&1; then
 
 # Create server.properties file
 if echo "$json_config" | jq -e 'has("server.properties")' >/dev/null 2>&1; then
