@@ -64,7 +64,7 @@ fi
 list_installed_java_links() {
   for file in "$java_link_dir"/*; do
     # Only delete files in the format java<major_version>
-    basename "$file" | grep -qE '^java[0-9]+$' || continue
+    basename "$file" | grep -qE "$JAVA_LINK_REGEX" || continue
 
     # Only list symlinks
     [ -L "$file" ] || continue
@@ -118,7 +118,7 @@ install)
     if [ -n "$existing_links" ]; then
       while IFS='' read -r existing_link; do
         # Only delete files in the format java<major_version>
-        basename "$existing_link" | grep -qE '^java[0-9]+$' || continue
+        basename "$existing_link" | grep -qE "$JAVA_LINK_REGEX" || continue
 
         # Only delete symlinks
         [ -L "$existing_link" ] || continue
