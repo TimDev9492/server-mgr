@@ -11,9 +11,10 @@ if (($# < 2)); then
 fi
 
 server_alias="$1"
-total_seconds="$2"
-note="$3"
-shift 3
+command_file="$2"
+total_seconds="$3"
+note="$4"
+shift 4
 message="$*"
 
 print_timestamps=(300 180 120 60 30 10 5 4 3 2 1)
@@ -34,6 +35,13 @@ while ((total_seconds > 0)); do
 done
 
 send_server_command "$server_alias" "kick @a $message"
+
+if [ -n "$command_file" ]; then
+  while IFS='' read -r command; do
+    send_server_command "$server_alias" "$command"
+  done < <(get_mc_commands "$command_file")
+fi
+
 send_server_command "$server_alias" "stop"
 if [ ! "$?" -eq 0 ]; then
   echo "[ERROR] Failed to stop server $server_alias" >&2

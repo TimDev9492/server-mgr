@@ -18,7 +18,7 @@ get_project_user_agent() {
 
 # check if required programs are installed
 check_prerequisites() {
-  local required_commands=("curl" "jq" "which" "awk" "grep" "sed" "screen" "cut" "printf" "date")
+  local required_commands=("curl" "jq" "which" "awk" "grep" "sed" "screen" "cut" "printf" "date" "nc")
 
   # Accept more requirements passed as arguments
   if [ $# -gt 0 ]; then
@@ -129,6 +129,21 @@ print_screen_session_names() {
 to_screen_session_name() {
   local server_alias="$1"
   echo "minecraft-server-$server_alias"
+}
+
+check_server_port() {
+  local server_ip="$1"
+  local server_port="$2"
+  nc -z -w 1 "$server_ip" "$server_port" 2>/dev/null
+}
+
+get_mc_commands() {
+  local filename="$1"
+  if [ ! -f "$filename" ]; then
+    return 1
+  fi
+
+  grep -v '^[[:space:]]*$' "$filename" | grep -v '^[[:space:]]*#'
 }
 
 get_server_status() {

@@ -69,10 +69,10 @@ print_usage() {
       echo "Usage: serman.sh status" >&2
       ;;
     start)
-      echo "Usage: serman.sh start <server_alias>" >&2
+      echo "Usage: serman.sh start <server_alias> [--run-startup-commands]" >&2
       ;;
     stop)
-      echo "Usage: serman.sh stop <server_alias> [<delay_seconds>] [<note>] [<reason>] [--wait]" >&2
+      echo "Usage: serman.sh stop <server_alias> [<delay_seconds>] [<note>] [<reason>] [--wait] [--run-shutdown-commands]" >&2
       ;;
     *)
       echo "[ERROR] Unknown operation: ${args[0]}" >&2
@@ -116,6 +116,15 @@ list_installed_servers() {
     # check if the server directory is a valid server installation
     check_server_installation "$server_dir" && echo "$server_alias" || continue
   done
+}
+
+read_server_ip_port() {
+  local -n _ip_port="$1"
+  local server_alias="$2"
+  local server_properties_file="${MINECRAFT_SERVER_DIR}/${server_alias}/server.properties"
+  server_ip="$(grep '^server-ip=' "$server_properties_file" | cut -d'=' -f2)"
+  server_port="$(grep '^server-port=' "$server_properties_file" | cut -d'=' -f2)"
+  _ip_port=("$server_ip" "$server_port")
 }
 
 operation="${args[0]}"
@@ -329,6 +338,25 @@ start)
   # Sart the server
   source "${server_directory}/bin/startServer.sh"
   echo "[INFO] Starting server '$server_alias'."
+
+  declare -a server_info
+  read_server_ip_port server_info "$server_alias"
+  
+  run_startup_commands=false
+  in_array "--run-startup-commands" "${flags[@]}" && run_startup_commands=true
+
+  if $run_startup_commands; then
+    # wait for server to get online
+    while ! check_server_port "${server_info[0]}" "${server_info[1]}"; do
+      sleep 1
+    done
+
+    command_file="${server_directory}/bin/on-start"
+
+    while IFS='' read -r command; do
+      send_server_command "$server_alias" "$command"
+    done < <(get_mc_commands "$command_file")
+  fi
   ;;
 stop)
   server_alias="${args[1]}"
@@ -361,9 +389,12 @@ stop)
     exit 1
   fi
 
+  command_file=""
+  in_array "--run-shutdown-commands" "${flags[@]}" && command_file="${server_directory}/bin/on-stop"
+
   if $wait_flag; then
     (
-      source ./helpers/schedule_server_stop.sh "$server_alias" "$delay_seconds" "$stop_note" "$kick_reason"
+      source ./helpers/schedule_server_stop.sh "$server_alias" "$command_file" "$delay_seconds" "$stop_note" "$kick_reason"
     )
     if [ $? -ne 0 ]; then
       echo "[ERROR] Failed to stop server '$server_alias'." >&2
@@ -373,7 +404,7 @@ stop)
     fi
   else
     (
-      source ./helpers/schedule_server_stop.sh "$server_alias" "$delay_seconds" "$stop_note" "$kick_reason"
+      source ./helpers/schedule_server_stop.sh "$server_alias" "$command_file" "$delay_seconds" "$stop_note" "$kick_reason"
     ) >/dev/null 2>&1 &
   fi
   ;;

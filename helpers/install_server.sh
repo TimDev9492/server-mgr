@@ -128,6 +128,10 @@ fi
 # Make the startServer.sh script executable
 chmod +x "$start_script_path"
 
+# Copy over on-start and on-stop scripts
+cp "${SCRIPT_DIR}/assets/templates/on-start.template" "${server_dir}/bin/on-start"
+cp "${SCRIPT_DIR}/assets/templates/on-stop.template" "${server_dir}/bin/on-stop"
+
 # Create server.properties file
 if echo "$json_config" | jq -e 'has("server.properties")' >/dev/null 2>&1; then
   # Write values to server.properties file

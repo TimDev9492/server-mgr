@@ -1,0 +1,6 @@
+# List of minecraft commands that get executed after
+# server start, line by line
+#
+# Example:
+# list
+# whitelist add myself

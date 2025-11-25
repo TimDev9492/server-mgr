@@ -1,0 +1,6 @@
+# List of minecraft commands that get executed before
+# the server stops, line by line
+#
+# Example:
+# kick @a Shutting down server...
+# say No one should be online now...
