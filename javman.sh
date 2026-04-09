@@ -9,6 +9,7 @@ cd ${SCRIPT_DIR}
 source ./common/utils.sh
 
 VERBOSE=false
+INTERACTIVE=true
 
 # Parse command line arguments into flags and positional arguments
 parse_args flags args "$@"
@@ -19,6 +20,9 @@ for flag in "${flags[@]}"; do
   -v)
     VERBOSE=true
     ;;
+  -I)
+    INTERACTIVE=false
+    ;;
   esac
 done
 
@@ -28,9 +32,6 @@ if [ ! -f "./load_config.sh" ]; then
   exit 1
 fi
 source ./load_config.sh
-
-# Check for required commands
-check_prerequisites
 
 # parse arguments
 operations=("list" "install")
@@ -49,7 +50,7 @@ if [ -z "${args[0]}" ]; then
 fi
 
 # Warn user about different config values when running as root
-if [ "$(id -u)" -eq 0 ]; then
+if [ "$(id -u)" -eq 0 ] && $INTERACTIVE; then
   echo "[WARNING] Running as root, config values may be different!" >&2
   java_link_dir="$(prompt_default_value "Enter java link directory" "$JAVA_LINK_DIR")"
   [ $? -eq 130 ] && abort_server_creation
