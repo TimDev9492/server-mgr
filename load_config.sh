@@ -16,7 +16,7 @@ fi
 CONFIG_PATHS=(
   "$HOME/.config/server-mgr/config.sh"
   "/usr/local/share/server-mgr/config.sh"
-  "/etc/server-mgr/configh.sh"
+  "/etc/server-mgr/config.sh"
 )
 
 # Fallback file
