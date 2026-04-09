@@ -1,0 +1,33 @@
+services:
+  server-mgr:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        USER_ID: 1711
+        GROUP_ID: 1711
+    user: "1711:1711"
+    stdin_open: true
+    tty: true
+    volumes:
+      - bin:/usr/local/bin
+      - jvm:/usr/lib/jvm
+    depends_on:
+      - java-mgr
+    restart: "unless-stopped"
+
+  java-mgr:
+    build:
+      context: .
+      dockerfile: docker/JDockerfile
+    volumes:
+      - bin:/usr/local/bin
+      - jvm:/usr/lib/jvm
+    environment:
+      APK_PACKAGES: "openjdk17-jre-headless openjdk21-jre-headless"
+    restart: "no"
+
+volumes:
+  bin:
+  jvm:
+

@@ -1,0 +1,16 @@
+FROM alpine:latest
+
+RUN apk update
+RUN apk add --no-cache bash jq
+
+WORKDIR /opt/server-mgr
+
+COPY ./common/utils.sh /opt/server-mgr/common/utils.sh
+COPY ./project_info.json /opt/server-mgr
+COPY ./load_config.sh /opt/server-mgr
+COPY ./default_config.sh /opt/server-mgr
+COPY ./javman.sh /opt/server-mgr
+COPY ./docker/apk_installer.sh /opt/server-mgr/package-installer.sh
+
+CMD ["bash", "-c", "./package-installer.sh \"$APK_PACKAGES\" && ./javman.sh -I install"]
+
