@@ -24,7 +24,7 @@ services:
       - bin:/usr/local/bin
       - jvm:/usr/lib/jvm
     environment:
-      APK_PACKAGES: "openjdk17-jre-headless openjdk21-jre-headless"
+      PACKAGES: "openjdk-17-jre-headless openjdk-21-jre-headless"
     restart: "no"
 
 volumes:

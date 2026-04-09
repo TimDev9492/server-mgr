@@ -12,11 +12,12 @@ MISSING=()
 TO_INSTALL=()
 
 echo "Updating repositories..."
-apk update
+apt-get update -qq
+
 echo "Checking packages..."
 
 for pkg in "${PACKAGES[@]}"; do
-  if apk info "$pkg" &>/dev/null; then
+  if apt-cache show "$pkg" &>/dev/null; then
     TO_INSTALL+=("$pkg")
   else
     echo "WARNING: Package '$pkg' does not exist in the repository — skipping."
@@ -27,7 +28,7 @@ done
 if [[ ${#TO_INSTALL[@]} -gt 0 ]]; then
   echo ""
   echo "Installing: ${TO_INSTALL[*]}"
-  apk add "${TO_INSTALL[@]}"
+  apt-get install -y "${TO_INSTALL[@]}"
 else
   echo "No valid packages to install."
 fi
